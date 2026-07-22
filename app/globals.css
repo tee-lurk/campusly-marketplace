@@ -1,26 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ─── Tailwind v4 Design Tokens ─────────────────────────────────────── */
+@theme {
+  /* Colors */
+  --color-brand-indigo: #2e3192;
+  --color-brand-indigo-dark: #1e2272;
+  --color-brand-indigo-light: #4e51b2;
+  --color-brand-amber: #f5a623;
+  --color-canvas: #fafaf8;
+  --color-canvas-dark: #16181d;
+  --color-card: #ffffff;
+  --color-card-dark: #1e2028;
+  --color-border-soft: #e8e8e4;
+  --color-border-dark: #2a2d38;
+  --color-text-primary: #1a1a2e;
+  --color-text-body: #4a4a5a;
+  --color-text-muted: #9a9aaa;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Sora", "Inter", system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-btn: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-btn: 0 1px 3px rgba(46,49,146,0.2);
+  --shadow-btn-hover: 0 4px 10px rgba(46,49,146,0.3);
+
+  /* Animations */
+  --animate-shimmer: shimmer 1.5s infinite linear;
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.25s ease-out;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Keyframes ──────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Dark mode variant ──────────────────────────────────────────────── */
+@variant dark (&:where(.dark, .dark *));
+
+/* ─── Base ───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: #fafaf8;
+  color: #1a1a2e;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+.dark body {
+  background-color: #16181d;
+  color: #e8e8e4;
+}
+
+/* ─── Skeleton shimmer ───────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0ee 25%, #e8e8e4 50%, #f0f0ee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e2028 25%, #2a2d38 50%, #1e2028 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ─── Custom scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c8c8c4; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9a9aaa; }
+
+/* ─── Focus ring ─────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid #2e3192;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Prose ──────────────────────────────────────────────────────────── */
+.prose-content {
+  line-height: 1.75;
+  max-width: 70ch;
+  color: #4a4a5a;
+}
+.prose-content p + p { margin-top: 1em; }

@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: campusly_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: campusly
+    ports:
+      - "5432:5432"
+    volumes:
+      - campusly_pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusly_backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/campusly?schema=public
+      JWT_SECRET: campusly_jwt_secret_change_in_production
+      JWT_REFRESH_SECRET: campusly_refresh_secret_change_in_production
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3002
+    ports:
+      - "3002:3002"
+
+volumes:
+  campusly_pgdata:

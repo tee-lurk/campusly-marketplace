@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <clipPath id="circleView">
+      <circle cx="50" cy="50" r="50" />
+    </clipPath>
+  </defs>
+  <!-- Background Circle (Light Grey) -->
+  <circle cx="50" cy="50" r="50" fill="#e0e0e0" />
+  
+  <!-- Icon Group clipped to the circle boundary -->
+  <g clip-path="url(#circleView)">
+    <!-- Head -->
+    <circle cx="50" cy="37" r="18" fill="#a0a0a0" />
+    <!-- Shoulders -->
+    <path d="M50 58c-18 0-33 12-38 28h76c-5-16-20-28-38-28z" fill="#a0a0a0" />
+  </g>
+</svg>

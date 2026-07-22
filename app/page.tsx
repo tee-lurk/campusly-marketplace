@@ -1,65 +1,197 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { Search, BookOpen } from "lucide-react";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { FilterBar } from "@/components/marketplace/FilterBar";
+import { ProductCard } from "@/components/marketplace/ProductCard";
+import { ProductCardSkeleton } from "@/components/marketplace/ProductCardSkeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { FilterState, Product } from "@/lib/types";
+import { Shield } from "lucide-react";
+
+const PAGE_SIZE = 8;
+const API = "http://localhost:3002";
+
+/** Normalise a backend product into the Product shape ProductCard expects */
+function normalise(p: any): Product {
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description ?? "",
+    price: p.price,
+    status: p.status,
+    category: p.category?.name ?? "",
+    productType: p.productType?.name ?? "",
+    images: (p.images ?? []).map((img: any) => img.image_url),
+    isFeatured: p.isFeatured ?? false,
+    createdAt: p.created_at,
+    seller: {
+      id: p.seller?.id ?? "",
+      name: p.seller?.profile?.name ?? "Unknown",
+      username: p.seller?.profile?.username ?? "unknown",
+      avatar: p.seller?.profile?.avatar_url || "/default-avatar.svg",
+      isVerified: p.seller?.profile?.is_verified ?? false,
+    },
+  };
+}
+
+function MarketplaceFeedInner() {
+  const searchParams = useSearchParams();
+  const { darkMode, toggleDark } = useTheme();
+
+  const [filters, setFilters] = useState<FilterState>({
+    category: (searchParams.get("category") as FilterState["category"]) || "",
+    productType: "",
+    sort: "newest",
+    search: searchParams.get("search") || "",
+  });
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  // Fetch from backend
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ status: "approved" });
+      if (filters.search) params.set("search", filters.search);
+      if (filters.category) params.set("category_name", filters.category);
+      if (filters.productType) params.set("product_type_name", filters.productType);
+
+      const res = await fetch(`${API}/products?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.map(normalise));
+      }
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters.search, filters.category, filters.productType]);
+
+  useEffect(() => {
+    fetchProducts();
+    setPage(1);
+  }, [fetchProducts]);
+
+  const handleSearch = (query: string) => {
+    setSearchInput(query);
+    setFilters((f) => ({ ...f, search: query }));
+  };
+
+  // Client-side sort only (backend returns newest by default)
+  const sorted = useMemo(() => {
+    switch (filters.sort) {
+      case "price-asc":
+        return [...products].sort((a, b) => a.price - b.price);
+      case "price-desc":
+        return [...products].sort((a, b) => b.price - a.price);
+      default:
+        return [...products].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+    }
+  }, [products, filters.sort]);
+
+  const visible = sorted.slice(0, page * PAGE_SIZE);
+  const hasMore = visible.length < sorted.length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
+      <Navbar
+        onSearch={handleSearch}
+        searchValue={searchInput}
+        darkMode={darkMode}
+        toggleDark={toggleDark}
+      />
+
+      <main className="flex-1">
+        {/* Trust Banner */}
+        <div className="bg-brand-indigo/5 dark:bg-brand-indigo/10 border-b border-brand-indigo/10 dark:border-brand-indigo/20 py-2.5 px-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-xs text-brand-indigo">
+            <Shield size={13} />
+            <span>All listings are reviewed by our team before being published.</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Hero */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold font-heading text-text-primary dark:text-gray-100 mb-2">
+              Academic Marketplace
+            </h1>
+            <p className="text-text-muted text-base">
+              Discover notes, modules, past papers, and video lectures from verified students.
+            </p>
+          </div>
+
+          {/* Filter bar */}
+          <FilterBar filters={filters} onChange={setFilters} />
+        </section>
+
+        {/* Grid */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : sorted.length === 0 ? (
+            <EmptyState
+              icon={<Search size={48} />}
+              title="No listings found"
+              description="Try adjusting your filters or search term. New materials are added regularly."
+              action={{
+                label: "Clear filters",
+                onClick: () =>
+                  setFilters({ category: "", productType: "", sort: "newest", search: "" }),
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          ) : (
+            <>
+              <p className="text-sm text-text-muted mb-4">
+                {sorted.length} listing{sorted.length !== 1 ? "s" : ""} found
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {visible.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+
+              {hasMore && (
+                <div className="flex justify-center mt-10">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setPage((p) => p + 1)}
+                    size="lg"
+                  >
+                    Load more listings
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
       </main>
+
+      <Footer />
     </div>
+  );
+}
+
+export default function MarketplaceFeed() {
+  return (
+    <Suspense>
+      <MarketplaceFeedInner />
+    </Suspense>
   );
 }
