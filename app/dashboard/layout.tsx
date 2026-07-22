@@ -4,8 +4,8 @@ import React from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { User, ListOrdered, ShoppingBag, Wallet, LogOut, MessageSquare } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { User, ListOrdered, ShoppingBag, Wallet, LogOut, MessageSquare, Lock, Bell, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -13,7 +13,10 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard/profile", label: "Profile Settings", icon: User },
+  { href: "/dashboard/profile", label: "Profile Settings", icon: User, tab: "profile" },
+  { href: "/dashboard/profile?tab=password", label: "Password", icon: Lock, tab: "password" },
+  { href: "/dashboard/profile?tab=notifications", label: "Notifications", icon: Bell, tab: "notifications" },
+  { href: "/dashboard/profile?tab=verification", label: "Verification", icon: ShieldCheck, tab: "verification" },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/listings", label: "My Listings", icon: ListOrdered },
   { href: "/dashboard/purchases", label: "My Purchases", icon: ShoppingBag },
@@ -29,6 +32,8 @@ export default function DashboardLayout({
   const { darkMode, toggleDark } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab") || "profile";
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -80,10 +85,11 @@ export default function DashboardLayout({
             <div className="flex-1 py-4 flex flex-col gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const active =
-                  pathname === item.href ||
-                  (item.href === "/dashboard/listings" &&
-                    pathname.startsWith("/dashboard/listings"));
+                const active = item.tab
+                  ? pathname === "/dashboard/profile" && currentTab === item.tab
+                  : pathname === item.href ||
+                    (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
+
                 return (
                   <Link
                     key={item.href}

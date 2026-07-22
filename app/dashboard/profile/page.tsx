@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { User, Lock, Bell, ShieldCheck, Camera, Check, AlertCircle, RefreshCw, Trash2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -9,10 +10,10 @@ import { Input, Textarea } from "@/components/ui/Input";
 const API = "http://localhost:3002";
 
 export default function RedesignedProfilePage() {
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "profile";
   const { user, updateUser } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [activeTab, setActiveTab] = useState<"profile" | "password" | "notifications" | "verification">("profile");
   
   // Loading & State
   const [loading, setLoading] = useState(true);
@@ -166,6 +167,11 @@ export default function RedesignedProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, [user]);
+
+  useEffect(() => {
+    setSaveError(null);
+    setSaveSuccess(false);
+  }, [activeTab]);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -398,65 +404,7 @@ export default function RedesignedProfilePage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        {/* Left Sub-Navigation Tabs */}
-        <div className="w-full md:w-64 bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-2xl p-4 shadow-sm flex flex-col gap-1.5 flex-shrink-0">
-          <button
-            onClick={() => {
-              setActiveTab("profile");
-              setSaveError(null);
-            }}
-            className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all text-left ${
-              activeTab === "profile"
-                ? "bg-brand-indigo/10 text-brand-indigo font-bold"
-                : "text-text-body dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            }`}
-          >
-            <User size={16} />
-            Profile Settings
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("password");
-              setSaveError(null);
-            }}
-            className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all text-left ${
-              activeTab === "password"
-                ? "bg-brand-indigo/10 text-brand-indigo font-bold"
-                : "text-text-body dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            }`}
-          >
-            <Lock size={16} />
-            Password
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("notifications");
-              setSaveError(null);
-            }}
-            className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all text-left ${
-              activeTab === "notifications"
-                ? "bg-brand-indigo/10 text-brand-indigo font-bold"
-                : "text-text-body dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            }`}
-          >
-            <Bell size={16} />
-            Notifications
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("verification");
-              setSaveError(null);
-            }}
-            className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all text-left ${
-              activeTab === "verification"
-                ? "bg-brand-indigo/10 text-brand-indigo font-bold"
-                : "text-text-body dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            }`}
-          >
-            <ShieldCheck size={16} />
-            Verification
-          </button>
-        </div>
+
 
         {/* Right Settings Form Container */}
         <div className="flex-1 bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-2xl p-6 md:p-8 shadow-sm w-full">
