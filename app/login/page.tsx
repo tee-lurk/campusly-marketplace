@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ShieldCheck, Sparkles, BookOpen, ArrowRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, ShieldCheck, Sparkles, BookOpen, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isJustRegistered = searchParams.get("registered") === "true";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -134,6 +137,16 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Success Banner after registration */}
+          {isJustRegistered && (
+            <div className="flex items-start gap-3 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 shadow-sm animate-slide-up">
+              <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span>
+                Account created successfully! Please sign in with your email and password to access the marketplace.
+              </span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               id="login-email"
@@ -200,5 +213,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

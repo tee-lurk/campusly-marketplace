@@ -161,22 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errData.message || "Failed to create account.");
       }
 
-      const data = await res.json();
-      localStorage.setItem("campusly_access_token", data.access_token);
-      localStorage.setItem("campusly_refresh_token", data.refresh_token);
-
-      const profile = await fetchProfile(data.access_token);
-      if (profile) {
-        setUser(profile);
-        setIsLoading(false);
-        return true;
-      }
+      setIsLoading(false);
+      return true;
     } catch (err) {
       setIsLoading(false);
       throw err;
     }
-    setIsLoading(false);
-    return false;
   };
 
   const logout = () => {

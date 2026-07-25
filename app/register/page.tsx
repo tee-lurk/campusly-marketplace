@@ -69,7 +69,7 @@ export default function RegisterPage() {
       const ok = await register(name, username.trim().toLowerCase(), email, password);
       setLoading(false);
       if (ok) {
-        router.push("/dashboard/listings");
+        router.push("/login?registered=true");
       }
     } catch (err: any) {
       setLoading(false);
