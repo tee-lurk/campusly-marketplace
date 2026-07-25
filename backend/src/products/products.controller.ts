@@ -33,8 +33,24 @@ export class ProductsController {
 
   /** GET /products/:id — single product detail */
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  findOne(@Request() req: any, @Param('id') id: string) {
+    let userId: string | undefined = undefined;
+    const authHeader = req.headers?.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const base64Url = token.split('.')[1];
+        if (base64Url) {
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+          const payload = JSON.parse(jsonPayload);
+          userId = payload.sub || payload.id;
+        }
+      } catch (e) {
+        // ignore invalid token header
+      }
+    }
+    return this.productsService.findOne(id, userId);
   }
 
   /** GET /products/:id/download — get deliverable file url */
@@ -49,6 +65,13 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   create(@Request() req: any, @Body() dto: CreateProductDto) {
     return this.productsService.create(req.user.id, dto);
+  }
+
+  /** PATCH /products/:id/toggle-hide — hide or unhide own listing */
+  @Patch(':id/toggle-hide')
+  @UseGuards(JwtAuthGuard)
+  toggleHide(@Request() req: any, @Param('id') id: string) {
+    return this.productsService.toggleHide(req.user.id, id);
   }
 
   /** PATCH /products/:id — update own listing */

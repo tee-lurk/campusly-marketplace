@@ -67,21 +67,15 @@ export class TransactionsService {
     // const paymentIntent = await stripe.paymentIntents.create({ ... });
 
     // TEMPORARY: fake checkout completion — replace with Stripe webhook confirmation when Stripe is integrated.
-    const [transaction] = await this.prisma.$transaction([
-      this.prisma.transaction.create({
-        data: {
-          product_id: productId,
-          buyer_id: buyerId,
-          payment_id: null, // will be Stripe payment_intent.id after integration
-          status: 'completed',
-        },
-        include: { product: true },
-      }),
-      this.prisma.product.update({
-        where: { id: productId },
-        data: { status: 'sold' },
-      }),
-    ]);
+    const transaction = await this.prisma.transaction.create({
+      data: {
+        product_id: productId,
+        buyer_id: buyerId,
+        payment_id: null, // will be Stripe payment_intent.id after integration
+        status: 'completed',
+      },
+      include: { product: true },
+    });
 
     return transaction;
   }

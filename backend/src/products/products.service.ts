@@ -15,11 +15,16 @@ export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: ProductQueryDto) {
+    const targetStatus =
+      !query.status || query.status === 'approved'
+        ? { in: ['approved', 'sold'] }
+        : (query.status as any);
+
     const products = await this.prisma.product.findMany({
       where: {
-        status: (query.status as any) ?? 'approved',
+        status: targetStatus,
+        ...(query.seller_id ? { user_id: query.seller_id } : { is_hidden: false }),
         ...(query.category_id ? { category_id: query.category_id } : {}),
-        ...(query.seller_id ? { user_id: query.seller_id } : {}),
         ...(query.product_type_id
           ? { product_type_id: query.product_type_id }
           : {}),
@@ -47,7 +52,7 @@ export class ProductsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -58,9 +63,27 @@ export class ProductsService {
       },
     });
     if (!product) throw new NotFoundException('Product not found.');
+
+    let has_purchased = false;
+    let purchased_at: Date | null = null;
+    if (userId) {
+      const tx = await this.prisma.transaction.findFirst({
+        where: {
+          product_id: id,
+          buyer_id: userId,
+          status: 'completed',
+        },
+        orderBy: { created_at: 'desc' },
+      });
+      if (tx) {
+        has_purchased = true;
+        purchased_at = tx.created_at;
+      }
+    }
+
     const has_deliverable = !!product.deliverable_file_url;
     delete (product as any).deliverable_file_url;
-    return { ...product, has_deliverable };
+    return { ...product, has_deliverable, has_purchased, purchased_at };
   }
 
   async create(userId: string, dto: CreateProductDto) {
@@ -158,5 +181,21 @@ export class ProductsService {
     }
 
     return { deliverable_file_url: product.deliverable_file_url };
+  }
+
+  async toggleHide(userId: string, id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+    });
+    if (!product) throw new NotFoundException('Product not found.');
+    if (product.user_id !== userId)
+      throw new ForbiddenException('You do not own this listing.');
+
+    return this.prisma.product.update({
+      where: { id },
+      data: {
+        is_hidden: !product.is_hidden,
+      },
+    });
   }
 }

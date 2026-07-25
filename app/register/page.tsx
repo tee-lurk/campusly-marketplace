@@ -81,9 +81,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col items-center justify-center px-4 py-12">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 mb-8">
-        <div className="w-9 h-9 rounded-lg bg-brand-indigo flex items-center justify-center">
-          <BookOpen size={18} className="text-white" />
-        </div>
+        <img src="/logo.png" alt="Campusly Logo" className="w-9 h-9 rounded-lg object-contain" />
         <span className="font-heading font-bold text-brand-indigo text-xl tracking-tight">
           Campusly
         </span>

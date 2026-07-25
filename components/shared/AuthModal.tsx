@@ -44,7 +44,7 @@ export function AuthModal({ isOpen, onClose, redirectAfter }: AuthModalProps) {
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
       <div className="flex flex-col items-center gap-1 mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <BookOpen size={20} className="text-brand-indigo" />
+          <img src="/logo.png" alt="Campusly Logo" className="w-6 h-6 rounded-md object-contain" />
           <span className="font-heading font-bold text-brand-indigo text-lg">Campusly</span>
         </div>
         <h2 className="text-xl font-bold font-heading text-text-primary dark:text-gray-100">

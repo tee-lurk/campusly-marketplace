@@ -82,6 +82,7 @@ model Product {
   product_type_id String
   productType     ProductType    @relation(fields: [product_type_id], references: [id])
   is_featured     Boolean        @default(false)
+  is_hidden       Boolean        @default(false)
   report_count    Int            @default(0)
   deliverable_file_url String?
   created_at      DateTime       @default(now())

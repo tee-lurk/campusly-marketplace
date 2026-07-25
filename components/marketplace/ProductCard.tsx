@@ -1,9 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { FileText, Video, BookOpen, ClipboardList, Play, Star } from "lucide-react";
+import { FileText, Video, BookOpen, ClipboardList, Play, Star, User } from "lucide-react";
 import { Product, ProductType } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { VerifiedBadge } from "@/components/shared/VerifiedBadge";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/lib/utils";
 
 const productTypeIcons: Record<ProductType, React.ReactNode> = {
@@ -25,11 +26,17 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { user } = useAuth();
   const hasImage = product.images && product.images.length > 0;
+  const isMine = !!(user && product.seller.id && user.id === product.seller.id);
 
   return (
     <Link href={`/product/${product.id}`} className="group block">
-      <article className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-card overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover h-full flex flex-col">
+      <article className={`bg-card dark:bg-card-dark border rounded-card overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover h-full flex flex-col relative ${
+        isMine
+          ? "border-brand-indigo/50 ring-2 ring-brand-indigo/30 dark:ring-brand-indigo/40 bg-gradient-to-b from-brand-indigo/[0.03] via-card to-card"
+          : "border-border-soft dark:border-border-dark"
+      }`}>
         {/* Thumbnail */}
         <div className="relative aspect-[16/9] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900 overflow-hidden flex-shrink-0">
           {hasImage ? (
@@ -60,15 +67,21 @@ export function ProductCard({ product }: ProductCardProps) {
             </Badge>
           </div>
 
-          {/* Featured tag */}
-          {product.isFeatured && (
-            <div className="absolute top-2.5 right-2.5">
+          {/* Top Right Badges: Your Listing / Featured */}
+          <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 z-10">
+            {isMine && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight bg-brand-indigo text-white shadow-sm border border-indigo-400/30">
+                <User size={9} className="text-white" />
+                Your Listing
+              </span>
+            )}
+            {product.isFeatured && (
               <Badge variant="amber" className="text-2xs">
                 <Star size={10} fill="currentColor" />
                 Featured
               </Badge>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Body */}
@@ -92,7 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
               />
               <div className="flex items-center gap-1 min-w-0">
                 <span className="text-xs text-text-muted truncate leading-none">
-                  @{product.seller.username}
+                  @{product.seller.username} {isMine && <span className="text-brand-indigo font-bold ml-0.5">(You)</span>}
                 </span>
                 {product.seller.isVerified && (
                   <VerifiedBadge isVerified={true} showText={false} size="sm" />

@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import { User } from "@/lib/types";
+import { API_BASE_URL } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (token: string): Promise<User | null> => {
     try {
-      const res = await fetch("http://localhost:3002/users/me", {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!refreshToken) return false;
 
     try {
-      const res = await fetch("http://localhost:3002/auth/refresh", {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<User | null> => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3002/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3002/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, ExternalLink, Download, Trash2, AlertCircle } from "lucide-react";
+import { ShoppingBag, ExternalLink, Download, Trash2, AlertCircle, Star, MessageCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface BackendTransaction {
   id: string;
@@ -38,17 +39,12 @@ export default function PurchasesPage() {
 
   const fetchPurchases = async () => {
     const token = localStorage.getItem("campusly_access_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!token) { setLoading(false); return; }
     try {
-      const res = await fetch("http://localhost:3002/transactions", {
+      const res = await fetch(`${API_BASE_URL}/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        setOrders(await res.json());
-      }
+      if (res.ok) setOrders(await res.json());
     } catch (err) {
       console.error("Failed to load purchases:", err);
     } finally {
@@ -56,19 +52,14 @@ export default function PurchasesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchPurchases();
-  }, [user]);
+  useEffect(() => { fetchPurchases(); }, [user]);
 
   const handleDelete = async (orderId: string) => {
-    if (!confirm("Are you sure you want to delete this purchase from your history?")) {
-      return;
-    }
+    if (!confirm("Are you sure you want to delete this purchase from your history?")) return;
     const token = localStorage.getItem("campusly_access_token");
     if (!token) return;
-
     try {
-      const res = await fetch(`http://localhost:3002/transactions/${orderId}`, {
+      const res = await fetch(`${API_BASE_URL}/transactions/${orderId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -88,7 +79,7 @@ export default function PurchasesPage() {
     setDownloadingId(productId);
     try {
       const token = localStorage.getItem("campusly_access_token");
-      const res = await fetch(`http://localhost:3002/products/${productId}/download`, {
+      const res = await fetch(`${API_BASE_URL}/products/${productId}/download`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) {
@@ -101,9 +92,7 @@ export default function PurchasesPage() {
         alert("File unavailable — contact support");
         return;
       }
-
       const fileUrl = data.deliverable_file_url;
-
       try {
         const fileRes = await fetch(fileUrl);
         const blob = await fileRes.blob();
@@ -137,31 +126,25 @@ export default function PurchasesPage() {
   const handleReportProblem = (title: string) => {
     const issue = prompt(`Describe the problem with the purchased material "${title}":`);
     if (issue && issue.trim()) {
-      alert(`Thank you. Your feedback has been logged. Our support team will investigate and contact you.`);
+      alert("Thank you. Your feedback has been logged. Our support team will investigate and contact you.");
     }
   };
 
   const handleWriteReview = async (orderId: string) => {
     const comment = prompt("Enter your review comment:");
     if (!comment || !comment.trim()) return;
-
     const ratingStr = prompt("Rate this listing (1 to 5 stars):");
     const rating = parseInt(ratingStr || "", 10);
     if (isNaN(rating) || rating < 1 || rating > 5) {
       alert("Please enter a valid rating between 1 and 5.");
       return;
     }
-
     const token = localStorage.getItem("campusly_access_token");
     if (!token) return;
-
     try {
-      const res = await fetch(`http://localhost:3002/transactions/${orderId}/review`, {
+      const res = await fetch(`${API_BASE_URL}/transactions/${orderId}/review`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ comment, rating }),
       });
       if (res.ok) {
@@ -186,12 +169,13 @@ export default function PurchasesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-3xl">
+      {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold font-heading text-text-primary dark:text-gray-100">
+        <h1 className="text-2xl md:text-[28px] font-bold font-heading text-[#1A1A18] dark:text-[#F0F0F0] leading-tight">
           My Purchases
         </h1>
-        <p className="text-sm text-text-muted mt-1">
+        <p className="text-sm text-[#6B6B66] mt-1.5">
           Materials you&apos;ve bought from other students.
         </p>
       </div>
@@ -204,7 +188,7 @@ export default function PurchasesPage() {
           action={{ label: "Browse Marketplace", onClick: () => (window.location.href = "/") }}
         />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {orders.map((order) => {
             const product = order.product;
             if (!product) return null;
@@ -214,101 +198,110 @@ export default function PurchasesPage() {
             return (
               <div
                 key={order.id}
-                className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-4 flex flex-col gap-3"
+                className="bg-white dark:bg-[#1e2028] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl p-5 flex flex-col gap-4"
               >
+                {/* Top row: thumbnail + info + price */}
                 <div className="flex gap-4 items-start">
-                  {images[0] && (
-                    <img
-                      src={images[0]}
-                      alt={product.title}
-                      className="w-20 h-14 rounded-lg object-cover flex-shrink-0 border border-border-soft"
-                    />
-                  )}
+                  {/* Thumbnail */}
+                  <div className="w-24 h-[68px] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-[#E5E5E0] dark:border-[#26282E]">
+                    {images[0] ? (
+                      <img src={images[0]} alt={product.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#6B6B66]">
+                        <ShoppingBag size={20} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-text-primary dark:text-gray-100 line-clamp-1 font-heading mb-1">
+                    <h3 className="text-sm font-semibold text-[#1A1A18] dark:text-[#F0F0F0] line-clamp-1 font-heading mb-1">
                       {product.title}
                     </h3>
-                    <p className="text-xs text-text-muted mb-2">
+                    <p className="text-xs text-[#6B6B66] mb-2">
                       Sold by @{sellerUsername} · Purchased {formatDate(order.created_at)}
                     </p>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Badge variant={order.status === "completed" ? "approved" : "pending"}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </Badge>
-
-                      {/* Action buttons */}
-                      {order.status === "completed" && (
-                        <>
-                          {product.has_deliverable ? (
-                            <button
-                              onClick={() => handleDownload(product.id, product.title)}
-                              disabled={downloadingId === product.id}
-                              className="text-xs text-brand-indigo hover:text-brand-indigo-dark font-medium flex items-center gap-1 transition-colors"
-                            >
-                              <Download size={12} className="flex-shrink-0" />
-                              {downloadingId === product.id ? "Downloading..." : "Download"}
-                            </button>
-                          ) : (
-                            <span className="text-xs text-red-500 font-medium flex items-center gap-1">
-                              <AlertCircle size={11} className="flex-shrink-0" />
-                              File unavailable
-                            </span>
-                          )}
-
-                          {!order.buyer_comment && (
-                            <button
-                              onClick={() => handleWriteReview(order.id)}
-                              className="text-xs text-brand-indigo hover:text-brand-indigo-dark font-medium flex items-center gap-1 transition-colors"
-                            >
-                              Write Review
-                            </button>
-                          )}
-                        </>
-                      )}
-
-                      <button
-                        onClick={() => handleReportProblem(product.title)}
-                        className="text-xs text-text-muted hover:text-red-400 font-medium flex items-center gap-1 transition-colors"
-                      >
-                        <AlertCircle size={12} className="flex-shrink-0" />
-                        Report Problem
-                      </button>
-                    </div>
+                    <Badge variant={order.status === "completed" ? "approved" : "pending"}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </Badge>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <span className="text-base font-bold text-brand-indigo font-heading">
+
+                  {/* Price */}
+                  <div className="flex-shrink-0 text-right">
+                    <span className="text-lg font-bold text-brand-indigo font-heading">
                       {formatPrice(product.price)}
                     </span>
-                    <div className="flex flex-col items-end gap-1">
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="text-xs text-brand-indigo hover:underline flex items-center gap-1"
-                      >
-                        View listing
-                        <ExternalLink size={11} />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        className="text-xs text-red-500 hover:underline flex items-center gap-1 mt-1"
-                      >
-                        <Trash2 size={11} />
-                        Delete
-                      </button>
-                    </div>
                   </div>
                 </div>
 
-                {/* Render Review Comment Inline if exists */}
+                {/* Actions row */}
+                <div className="flex items-center gap-3 pt-3 border-t border-[#E5E5E0] dark:border-[#26282E]">
+                  <Link href={`/product/${product.id}`}>
+                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors">
+                      <ExternalLink size={13} />
+                      View Listing
+                    </button>
+                  </Link>
+
+                  {order.status === "completed" && (
+                    <>
+                      {product.has_deliverable ? (
+                        <button
+                          onClick={() => handleDownload(product.id, product.title)}
+                          disabled={downloadingId === product.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          <Download size={13} />
+                          {downloadingId === product.id ? "Downloading..." : "Download"}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-500/80">
+                          <AlertCircle size={12} />
+                          File unavailable
+                        </span>
+                      )}
+
+                      {!order.buyer_comment && (
+                        <button
+                          onClick={() => handleWriteReview(order.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors"
+                        >
+                          <Star size={13} />
+                          Write Review
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => handleReportProblem(product.title)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#6B6B66] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors"
+                  >
+                    <AlertCircle size={13} />
+                    Report
+                  </button>
+
+                  <div className="ml-auto">
+                    <button
+                      onClick={() => handleDelete(order.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500/70 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 rounded-md transition-colors"
+                    >
+                      <Trash2 size={13} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+                {/* Review comment if exists */}
                 {order.status === "completed" && order.buyer_comment && (
-                  <div className="text-xs text-text-muted border-t border-border-soft/60 pt-3 flex flex-col gap-1 animate-slide-up">
+                  <div className="text-xs text-[#6B6B66] border-t border-[#E5E5E0] dark:border-[#26282E] pt-3 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-text-primary dark:text-gray-200">Your Feedback</span>
+                      <span className="font-semibold text-[#1A1A18] dark:text-[#F0F0F0]">Your Feedback</span>
                       <span className="text-amber-500 text-sm">
                         {"★".repeat(order.buyer_rating || 0) + "☆".repeat(5 - (order.buyer_rating || 0))}
                       </span>
                     </div>
-                    <p className="italic bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-lg border border-border-soft/50 leading-relaxed text-text-body dark:text-gray-300">
+                    <p className="italic bg-[#F5F5F0] dark:bg-[#1a1c22] p-3 rounded-lg border border-[#E5E5E0] dark:border-[#26282E] leading-relaxed text-[#4a4a5a] dark:text-gray-300">
                       &ldquo;{order.buyer_comment}&rdquo;
                     </p>
                   </div>

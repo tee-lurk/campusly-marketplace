@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface SellerProfile {
   username: string;
@@ -78,7 +79,7 @@ export default function AdminActivityPage() {
       const headers = { Authorization: `Bearer ${token()}` };
 
       // Fetch stats
-      const statsRes = await fetch("http://localhost:3002/admin/stats", { headers });
+      const statsRes = await fetch(`${API_BASE_URL}/admin/stats`, { headers });
       if (statsRes.ok) {
         setStats(await statsRes.json());
       }
@@ -89,7 +90,7 @@ export default function AdminActivityPage() {
       if (categoryFilter) params.set("category", categoryFilter);
 
       const listingsRes = await fetch(
-        `http://localhost:3002/admin/products/all?${params.toString()}`,
+        `${API_BASE_URL}/admin/products/all?${params.toString()}`,
         { headers }
       );
       if (listingsRes.ok) {
@@ -99,7 +100,7 @@ export default function AdminActivityPage() {
 
         // Extract unique categories from first page for the filter dropdown
         if (categories.length === 0 && result.data.length > 0) {
-          const cats = await fetch("http://localhost:3002/categories");
+          const cats = await fetch(`${API_BASE_URL}/categories`);
           if (cats.ok) {
             const catData = await cats.json();
             setCategories(catData.map((c: any) => ({ id: c.id, name: c.name })));
@@ -135,7 +136,7 @@ export default function AdminActivityPage() {
     if (!removeTarget) return;
     setRemoving(true);
     try {
-      const res = await fetch(`http://localhost:3002/admin/products/${removeTarget.id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products/${removeTarget.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token()}` },
       });
@@ -145,7 +146,7 @@ export default function AdminActivityPage() {
         setRemoveTarget(null);
         setRemoveReason("");
         // Refresh stats
-        const statsRes = await fetch("http://localhost:3002/admin/stats", {
+        const statsRes = await fetch(`${API_BASE_URL}/admin/stats`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         if (statsRes.ok) setStats(await statsRes.json());

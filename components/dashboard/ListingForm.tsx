@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
 
 interface ProductType {
   id: string;
@@ -51,7 +52,7 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   "video-lecture": "Video Lectures",
 };
 
-const API = "http://localhost:3002";
+const API = API_BASE_URL;
 
 export default function ListingForm({ mode, productId, initial }: ListingFormProps) {
   const router = useRouter();

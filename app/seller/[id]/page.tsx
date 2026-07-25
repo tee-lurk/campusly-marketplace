@@ -13,6 +13,7 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { Spinner } from "@/components/ui/Spinner";
 import { Product } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface BackendProfile {
   id: string;
@@ -47,6 +48,10 @@ function normalise(p: any): Product {
       username: p.seller?.profile?.username ?? "unknown",
       avatar: p.seller?.profile?.avatar_url || "/default-avatar.svg",
       isVerified: p.seller?.profile?.is_verified ?? false,
+      email: p.seller?.email ?? "",
+      bio: p.seller?.profile?.bio ?? "",
+      role: (p.seller?.role as any) ?? "student",
+      memberSince: p.seller?.created_at ?? "",
     },
   };
 }
@@ -72,7 +77,7 @@ export default function SellerProfilePage() {
         const headers = { Authorization: `Bearer ${token}` };
 
         // Fetch seller profile
-        const profileRes = await fetch(`http://localhost:3002/users/${id}`, { headers });
+        const profileRes = await fetch(`${API_BASE_URL}/users/${id}`, { headers });
         if (!profileRes.ok) {
           throw new Error("Failed to load profile");
         }
@@ -81,7 +86,7 @@ export default function SellerProfilePage() {
 
         // Fetch seller's active (approved) listings
         const productsRes = await fetch(
-          `http://localhost:3002/products?seller_id=${id}&status=approved`
+          `${API_BASE_URL}/products?seller_id=${id}&status=approved`
         );
         if (productsRes.ok) {
           const productsData = await productsRes.json();

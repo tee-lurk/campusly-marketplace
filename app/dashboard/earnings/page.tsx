@@ -9,6 +9,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { API_BASE_URL } from "@/lib/api";
 
 interface SalesTransaction {
   id: string;
@@ -60,10 +61,10 @@ export default function EarningsPage() {
 
     try {
       const [salesRes, listingsRes] = await Promise.all([
-        fetch("http://localhost:3002/transactions/sales", {
+        fetch(`${API_BASE_URL}/transactions/sales`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch("http://localhost:3002/products/mine", {
+        fetch(`${API_BASE_URL}/products/mine`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -135,10 +136,10 @@ export default function EarningsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-text-primary dark:text-gray-100">
+          <h1 className="text-2xl md:text-[28px] font-bold font-heading text-[#1A1A18] dark:text-[#F0F0F0] leading-tight">
             My Earnings
           </h1>
-          <p className="text-sm text-text-muted mt-1">
+          <p className="text-sm text-[#6B6B66] mt-1.5">
             Track your wallet, verify sales metrics, and view student feedback.
           </p>
         </div>
@@ -197,7 +198,7 @@ export default function EarningsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left: Sales History Log */}
-        <div className="lg:col-span-2 bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-5 flex flex-col gap-4">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1e2028] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl p-6 flex flex-col gap-4">
           <h2 className="text-base font-bold font-heading text-text-primary dark:text-gray-100 flex items-center gap-2">
             <ShoppingBag size={18} className="text-brand-indigo" />
             Recent Sales History
@@ -217,7 +218,7 @@ export default function EarningsPage() {
                 return (
                   <div
                     key={sale.id}
-                    className="flex justify-between items-center p-3 rounded-lg border border-border-soft dark:border-border-dark bg-canvas dark:bg-canvas-dark text-sm"
+                    className="flex justify-between items-center p-4 rounded-lg border border-[#E5E5E0] dark:border-[#26282E] bg-[#FAFAF8] dark:bg-[#16181D] text-sm"
                   >
                     <div>
                       <p className="font-semibold text-text-primary dark:text-gray-200">
@@ -244,7 +245,7 @@ export default function EarningsPage() {
         </div>
 
         {/* Right: Buyer Feedback Feed */}
-        <div className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-5 flex flex-col gap-4">
+        <div className="bg-white dark:bg-[#1e2028] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl p-6 flex flex-col gap-4">
           <h2 className="text-base font-bold font-heading text-text-primary dark:text-gray-100 flex items-center gap-2">
             <Star size={18} className="text-brand-indigo" />
             Buyer Comments &amp; Ratings

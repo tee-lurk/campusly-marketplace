@@ -10,9 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-md bg-brand-indigo flex items-center justify-center">
-                <BookOpen size={14} className="text-white" />
-              </div>
+              <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded-md object-contain" />
               <span className="font-heading font-bold text-brand-indigo text-base">
                 Campusly
               </span>

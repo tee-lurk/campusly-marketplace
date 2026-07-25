@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { VerifiedBadge } from "@/components/shared/VerifiedBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface UserProfile {
   id: string;
@@ -49,7 +50,7 @@ export default function AdminVerificationsPage() {
 
   const fetchVerifications = async () => {
     try {
-      const res = await fetch("http://localhost:3002/admin/verifications", {
+      const res = await fetch(`${API_BASE_URL}/admin/verifications`, {
         headers: { Authorization: `Bearer ${token()}` },
       });
       if (res.ok) {
@@ -71,7 +72,7 @@ export default function AdminVerificationsPage() {
     setActionLoading(profile.user_id);
     try {
       const res = await fetch(
-        `http://localhost:3002/admin/verifications/${profile.user_id}`,
+        `${API_BASE_URL}/admin/verifications/${profile.user_id}`,
         {
           method: "PATCH",
           headers: {
@@ -113,7 +114,7 @@ export default function AdminVerificationsPage() {
     setActionLoading(revokeTarget.user_id);
     try {
       const res = await fetch(
-        `http://localhost:3002/admin/verifications/${revokeTarget.user_id}`,
+        `${API_BASE_URL}/admin/verifications/${revokeTarget.user_id}`,
         {
           method: "PATCH",
           headers: {

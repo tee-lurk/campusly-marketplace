@@ -12,6 +12,8 @@ import {
   Video,
   Flag,
   Shield,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -22,8 +24,9 @@ import { AuthModal } from "@/components/shared/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Spinner } from "@/components/ui/Spinner";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatDate } from "@/lib/utils";
 import { ProductType } from "@/lib/types";
+import { API_BASE_URL } from "@/lib/api";
 
 const productTypeLabels: Record<string, string> = {
   module: "Module",
@@ -45,6 +48,8 @@ interface BackendProduct {
   description: string;
   price: number;
   status: string;
+  has_purchased?: boolean;
+  purchased_at?: string;
   created_at: string;
   category: { id: string; name: string };
   productType: { id: string; name: string };
@@ -68,13 +73,17 @@ export default function ProductDetailPage() {
   const [authOpen, setAuthOpen] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [buying, setBuying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:3002/products/${id}`);
+        const token = localStorage.getItem("campusly_access_token");
+        const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           setProduct(await res.json());
         } else {
@@ -87,7 +96,58 @@ export default function ProductDetailPage() {
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [id, user]);
+
+  const handleDownload = async () => {
+    if (!product) return;
+    setDownloading(true);
+    try {
+      const token = localStorage.getItem("campusly_access_token");
+      const res = await fetch(`${API_BASE_URL}/products/${product.id}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || "Failed to retrieve download link.");
+        return;
+      }
+      const data = await res.json();
+      if (!data.deliverable_file_url) {
+        alert("File unavailable — contact support");
+        return;
+      }
+
+      const fileUrl = data.deliverable_file_url;
+
+      try {
+        const fileRes = await fetch(fileUrl);
+        const blob = await fileRes.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        const extension = fileUrl.split(".").pop()?.split("?")[0] || "pdf";
+        const cleanTitle = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        a.download = `${cleanTitle}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (corsErr) {
+        const a = document.createElement("a");
+        a.href = fileUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error("Download file error:", err);
+      alert("An error occurred while downloading the file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleBuyNow = () => {
     if (!user) {
@@ -237,13 +297,36 @@ export default function ProductDetailPage() {
                   {formatPrice(product.price)}
                 </div>
 
-                {/* Buy Now */}
+                {/* Previous Purchase Warning Banner */}
+                {product.has_purchased && (
+                  <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 rounded-xl p-3.5 flex gap-3 text-amber-800 dark:text-amber-200 mb-4 animate-slide-up">
+                    <AlertCircle size={18} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-bold text-xs">You already bought this item!</p>
+                      <p className="leading-relaxed opacity-90 text-[11px]">
+                        Purchased {product.purchased_at ? formatDate(product.purchased_at) : "previously"}. You can download your file directly below or access it anytime in My Purchases.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Buy Now / Download Actions */}
                 {user && user.id === product.seller.id ? (
                   <Link href={`/dashboard/listings/${product.id}/edit`} className="w-full block">
                     <Button fullWidth size="lg" variant="secondary">
                       This is your listing — Edit Listing
                     </Button>
                   </Link>
+                ) : product.has_purchased ? (
+                  <div className="flex flex-col gap-2.5">
+                    <Button fullWidth size="lg" onClick={handleDownload} loading={downloading} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                      <Download size={16} />
+                      {downloading ? "Downloading..." : "Download File"}
+                    </Button>
+                    <Button fullWidth variant="secondary" size="sm" loading={buying} onClick={handleBuyNow}>
+                      Buy Again
+                    </Button>
+                  </div>
                 ) : (
                   <>
                     <Button fullWidth size="lg" loading={buying} onClick={handleBuyNow}>

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import ListingForm from "@/components/dashboard/ListingForm";
 import { Spinner } from "@/components/ui/Spinner";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function EditListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +15,7 @@ export default function EditListingPage() {
     const fetchProduct = async () => {
       const token = localStorage.getItem("campusly_access_token");
       try {
-        const res = await fetch(`http://localhost:3002/products/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/products/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.ok) {
@@ -22,7 +23,7 @@ export default function EditListingPage() {
           
           let deliverable_file_url = "";
           try {
-            const dlRes = await fetch(`http://localhost:3002/products/${id}/download`, {
+            const dlRes = await fetch(`${API_BASE_URL}/products/${id}/download`, {
               headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             if (dlRes.ok) {

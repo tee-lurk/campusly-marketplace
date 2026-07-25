@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { API_BASE_URL } from "@/lib/api";
 
 interface UnifiedNotification {
   id: string;
@@ -32,10 +33,10 @@ export default function AdminNotificationsPage() {
   const fetchUnifiedNotifications = async () => {
     try {
       const [verificationsRes, activityRes] = await Promise.all([
-        fetch("http://localhost:3002/admin/verifications", {
+        fetch(`${API_BASE_URL}/admin/verifications`, {
           headers: { Authorization: `Bearer ${token()}` },
         }),
-        fetch("http://localhost:3002/admin/activity/recent?filter=all&limit=50", {
+        fetch(`${API_BASE_URL}/admin/activity/recent?filter=all&limit=50`, {
           headers: { Authorization: `Bearer ${token()}` },
         })
       ]);

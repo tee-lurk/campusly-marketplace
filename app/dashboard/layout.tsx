@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
-import { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { User, ListOrdered, ShoppingBag, Wallet, LogOut, MessageSquare, Lock, Bell, ShieldCheck } from "lucide-react";
+import { User, ListChecks, ShoppingBag, Wallet, LogOut, MessageSquare, Lock, Bell, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -18,12 +17,12 @@ const navItems = [
   { href: "/dashboard/profile?tab=notifications", label: "Notifications", icon: Bell, tab: "notifications" },
   { href: "/dashboard/profile?tab=verification", label: "Verification", icon: ShieldCheck, tab: "verification" },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/listings", label: "My Listings", icon: ListOrdered },
+  { href: "/dashboard/listings", label: "My Listings", icon: ListChecks },
   { href: "/dashboard/purchases", label: "My Purchases", icon: ShoppingBag },
   { href: "/dashboard/earnings", label: "My Earnings", icon: Wallet },
 ];
 
-export default function DashboardLayout({
+function DashboardLayoutInner({
   children,
 }: {
   children: React.ReactNode;
@@ -55,26 +54,25 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
       <Navbar darkMode={darkMode} toggleDark={toggleDark} />
 
-      {/* Stretch layout to edge of screen by removing max-width grids */}
       <div className="flex-1 w-full flex">
-        {/* Full-width layout container */}
-        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] w-full bg-card dark:bg-card-dark border-none rounded-none shadow-none">
+        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] w-full">
           
-          {/* Flush Locked Sidebar (fixed height, locked top, stays static while content scrolls) */}
-          <aside className="w-full lg:w-60 bg-gradient-to-b from-brand-indigo to-brand-indigo-dark text-white flex flex-col flex-shrink-0 lg:sticky lg:top-[64px] lg:h-[calc(100vh-64px)] overflow-y-auto z-30">
-            {/* Header: User avatar + name/username */}
-            <div className="p-6 border-b border-white/10">
+          {/* ── Sidebar ────────────────────────────────────────────── */}
+          <aside className="w-full lg:w-[260px] bg-[#F0F0EC] dark:bg-[#101216] flex flex-col flex-shrink-0 lg:sticky lg:top-[64px] lg:h-[calc(100vh-64px)] overflow-y-auto z-30 border-r border-[#E5E5E0] dark:border-[#26282E]">
+            
+            {/* User info block */}
+            <div className="p-6 border-b border-[#E5E5E0] dark:border-[#26282E]">
               <div className="flex items-center gap-3">
                 <img
                   src={user.avatar}
                   alt={user.name}
-                  className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-sm"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-[#26282E] shadow-sm"
                 />
                 <div className="min-w-0">
-                  <h2 className="text-sm font-bold font-heading truncate leading-tight text-white">
+                  <h2 className="text-base font-bold font-heading truncate leading-tight text-[#1A1A18] dark:text-[#F0F0F0]">
                     {user.name}
                   </h2>
-                  <p className="text-[10px] text-slate-350 truncate">
+                  <p className="text-sm text-[#6B6B66] truncate">
                     @{user.username}
                   </p>
                 </div>
@@ -82,7 +80,7 @@ export default function DashboardLayout({
             </div>
 
             {/* Navigation links */}
-            <div className="flex-1 py-4 flex flex-col gap-1">
+            <div className="flex-1 py-3 flex flex-col gap-0.5 px-3">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = item.tab
@@ -95,41 +93,59 @@ export default function DashboardLayout({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 text-sm transition-all duration-150 rounded-xl mx-3 font-medium select-none",
+                      "flex items-center gap-3 px-3 h-11 text-sm transition-all duration-150 rounded-lg font-medium select-none relative",
                       active
-                        ? "bg-white/15 text-white font-bold shadow-sm"
-                        : "text-slate-200 hover:bg-white/10 hover:text-white"
+                        ? "bg-brand-indigo/10 text-brand-indigo font-semibold"
+                        : "text-[#6B6B66] hover:bg-[#E5E5E0] dark:hover:bg-[#1e2028] hover:text-[#1A1A18] dark:hover:text-[#F0F0F0]"
                     )}
                   >
-                    <Icon size={16} />
+                    {/* Active left accent bar */}
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-brand-indigo rounded-r-full" />
+                    )}
+                    <Icon size={20} className={active ? "text-brand-indigo" : ""} />
                     {item.label}
                   </Link>
                 );
               })}
             </div>
 
-            {/* Footer containing ONLY the log out button */}
-            <div className="p-4 border-t border-white/10 mt-auto bg-brand-indigo-dark/20">
+            {/* Logout pinned to bottom */}
+            <div className="p-3 border-t border-[#E5E5E0] dark:border-[#26282E] mt-auto">
               <button
                 onClick={() => {
                   logout();
                   router.replace("/login");
                 }}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 text-sm text-red-200 hover:bg-red-500/20 hover:text-red-100 transition-all rounded-xl font-semibold cursor-pointer select-none"
+                className="w-full flex items-center gap-3 px-3 h-11 text-sm text-red-500/80 hover:bg-red-500/10 hover:text-red-600 transition-all rounded-lg font-semibold cursor-pointer select-none"
                 title="Log out"
               >
-                <LogOut size={16} />
+                <LogOut size={20} />
                 <span>Log out</span>
               </button>
             </div>
           </aside>
 
-          {/* Main content area (scrolls independently) */}
-          <main className="flex-1 p-6 md:p-8 min-w-0 bg-canvas/10 dark:bg-canvas-dark/5 overflow-y-auto">
+          {/* ── Main content area ───────────────────────────────────── */}
+          <main className="flex-1 p-6 md:p-8 min-w-0 bg-[#FAFAF8] dark:bg-[#16181D] overflow-y-auto">
             {children}
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-canvas dark:bg-canvas-dark">
+          <Spinner size="lg" className="text-brand-indigo" />
+        </div>
+      }
+    >
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
   );
 }

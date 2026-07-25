@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { DeleteConfirmModal } from "@/components/shared/DeleteConfirmModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 type BackendListingStatus = "pending" | "approved" | "rejected" | "sold";
 
@@ -18,6 +19,7 @@ interface BackendListing {
   title: string;
   price: number;
   status: BackendListingStatus;
+  is_hidden?: boolean;
   created_at: string;
   category: { id: string; name: string };
   productType: { id: string; name: string };
@@ -49,7 +51,7 @@ export default function MyListingsPage() {
         return;
       }
       try {
-        const res = await fetch("http://localhost:3002/products/mine", {
+        const res = await fetch(`${API_BASE_URL}/products/mine`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -65,12 +67,43 @@ export default function MyListingsPage() {
     fetchMyListings();
   }, [user]);
 
+  const handleToggleHide = async (productId: string, currentHidden?: boolean) => {
+    const token = localStorage.getItem("campusly_access_token");
+    if (!token) return;
+
+    setListings((prev) =>
+      prev.map((item) =>
+        item.id === productId ? { ...item, is_hidden: !currentHidden } : item
+      )
+    );
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/products/${productId}/toggle-hide`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setListings((prev) =>
+          prev.map((item) =>
+            item.id === productId ? { ...item, is_hidden: currentHidden } : item
+          )
+        );
+      }
+    } catch (err) {
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === productId ? { ...item, is_hidden: currentHidden } : item
+        )
+      );
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     const token = localStorage.getItem("campusly_access_token");
     try {
-      await fetch(`http://localhost:3002/products/${deleteTarget}`, {
+      await fetch(`${API_BASE_URL}/products/${deleteTarget}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -88,10 +121,10 @@ export default function MyListingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-text-primary dark:text-gray-100">
+          <h1 className="text-2xl md:text-[28px] font-bold font-heading text-[#1A1A18] dark:text-[#F0F0F0] leading-tight">
             My Listings
           </h1>
-          <p className="text-sm text-text-muted mt-1">
+          <p className="text-sm text-[#6B6B66] mt-1.5">
             {listings.length} listing{listings.length !== 1 ? "s" : ""} total
           </p>
         </div>
@@ -124,7 +157,7 @@ export default function MyListingsPage() {
           {listings.map((product) => (
             <div
               key={product.id}
-              className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-4 flex gap-4 items-start transition-all hover:shadow-card"
+              className="bg-white dark:bg-[#1e2028] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl p-4 flex gap-4 items-start transition-all hover:shadow-card"
             >
               {/* Thumbnail */}
               <div className="w-20 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-border-soft dark:border-border-dark">
@@ -183,23 +216,52 @@ export default function MyListingsPage() {
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Link href={`/dashboard/listings/${product.id}/edit`}>
+              {/* Actions & Smooth Animated Hide Toggle */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50/80 dark:bg-gray-800/80 border border-border-soft dark:border-border-dark shadow-sm">
+                  <span className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-colors duration-300 ${
+                    product.is_hidden ? "text-slate-500 dark:text-slate-400" : "text-emerald-600 dark:text-emerald-400"
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                      product.is_hidden ? "bg-slate-400" : "bg-emerald-500 animate-pulse"
+                    }`} />
+                    {product.is_hidden ? "Hidden" : "Visible"}
+                  </span>
                   <button
-                    className="p-2 rounded-md text-text-muted hover:text-brand-indigo hover:bg-brand-indigo/5 transition-colors"
-                    aria-label="Edit listing"
+                    type="button"
+                    onClick={() => handleToggleHide(product.id, product.is_hidden)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full p-0.5 border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-indigo ${
+                      product.is_hidden
+                        ? "bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600"
+                        : "bg-emerald-500 hover:bg-emerald-600 shadow-sm shadow-emerald-500/30"
+                    }`}
+                    title={product.is_hidden ? "Click to show listing on marketplace" : "Click to hide listing from marketplace"}
                   >
-                    <Pencil size={15} />
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transform transition-all duration-300 ease-out ${
+                        product.is_hidden ? "translate-x-0" : "translate-x-5"
+                      }`}
+                    />
                   </button>
-                </Link>
-                <button
-                  onClick={() => setDeleteTarget(product.id)}
-                  className="p-2 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                  aria-label="Delete listing"
-                >
-                  <Trash2 size={15} />
-                </button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Link href={`/dashboard/listings/${product.id}/edit`}>
+                    <button
+                      className="p-2 rounded-md text-text-muted hover:text-brand-indigo hover:bg-brand-indigo/5 transition-colors"
+                      aria-label="Edit listing"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  </Link>
+                  <button
+                    onClick={() => setDeleteTarget(product.id)}
+                    className="p-2 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    aria-label="Delete listing"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

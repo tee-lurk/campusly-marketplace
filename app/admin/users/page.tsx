@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { VerifiedBadge } from "@/components/shared/VerifiedBadge";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface UserRow {
   id: string;
@@ -91,7 +92,7 @@ export default function AdminUsersPage() {
       if (searchQuery) params.set("search", searchQuery);
       if (roleFilter) params.set("role", roleFilter);
 
-      const res = await fetch(`http://localhost:3002/admin/users?${params.toString()}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token()}` },
       });
       if (res.ok) {
@@ -135,7 +136,7 @@ export default function AdminUsersPage() {
     if (!banTarget) return;
     setBanning(true);
     try {
-      const res = await fetch(`http://localhost:3002/admin/users/${banTarget.id}/ban`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${banTarget.id}/ban`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -168,7 +169,7 @@ export default function AdminUsersPage() {
     if (!unbanTarget) return;
     setUnbanning(true);
     try {
-      const res = await fetch(`http://localhost:3002/admin/users/${unbanTarget.id}/unban`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${unbanTarget.id}/unban`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token()}` },
       });
@@ -193,7 +194,7 @@ export default function AdminUsersPage() {
     setDetailLoading(true);
     setDetailUser(null);
     try {
-      const res = await fetch(`http://localhost:3002/admin/users/${userId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
         headers: { Authorization: `Bearer ${token()}` },
       });
       if (res.ok) {

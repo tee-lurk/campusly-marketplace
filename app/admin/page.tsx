@@ -18,6 +18,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 interface SellerProfile {
   username: string;
@@ -63,7 +64,7 @@ export default function AdminQueuePage() {
   useEffect(() => {
     const fetchQueue = async () => {
       try {
-        const res = await fetch("http://localhost:3002/admin/products", {
+        const res = await fetch(`${API_BASE_URL}/admin/products`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         if (res.ok) {
@@ -84,7 +85,7 @@ export default function AdminQueuePage() {
     setActionLoading(product.id);
     try {
       const res = await fetch(
-        `http://localhost:3002/admin/products/${product.id}/review`,
+        `${API_BASE_URL}/admin/products/${product.id}/review`,
         {
           method: "PATCH",
           headers: {
@@ -120,7 +121,7 @@ export default function AdminQueuePage() {
     setActionLoading(rejectTarget.id);
     try {
       const res = await fetch(
-        `http://localhost:3002/admin/products/${rejectTarget.id}/review`,
+        `${API_BASE_URL}/admin/products/${rejectTarget.id}/review`,
         {
           method: "PATCH",
           headers: {

@@ -25,6 +25,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 const sidebarGroups = [
   {
@@ -92,10 +93,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const fetchNotifications = async () => {
         try {
           const [verifRes, prodRes] = await Promise.all([
-            fetch("http://localhost:3002/admin/verifications", {
+            fetch(`${API_BASE_URL}/admin/verifications`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("campusly_access_token")}` }
             }),
-            fetch("http://localhost:3002/admin/products", {
+            fetch(`${API_BASE_URL}/admin/products`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("campusly_access_token")}` }
             })
           ]);
@@ -230,9 +231,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo Area */}
         <div className="h-[72px] flex items-center justify-between px-6 border-b border-transparent">
           <div className={cn("flex items-center gap-2", !sidebarOpen && "hidden")}>
-            <div className="w-7 h-7 rounded bg-[#5b52f6] flex items-center justify-center text-white">
-              <Hexagon size={16} fill="currentColor" />
-            </div>
+            <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded object-contain" />
             <span className="font-bold text-lg text-gray-900">Campusly</span>
           </div>
           <button 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "@/lib/api";
 
 interface NavbarProps {
   onSearch?: (query: string) => void;
@@ -60,7 +61,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
     if (user) {
       const fetchNotifs = async () => {
         try {
-          const res = await fetch("http://localhost:3002/users/me/notifications", {
+          const res = await fetch(`${API_BASE_URL}/users/me/notifications`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("campusly_access_token")}` },
           });
           if (res.ok) {
@@ -121,9 +122,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-brand-indigo flex items-center justify-center">
-              <BookOpen size={16} className="text-white" />
-            </div>
+            <img src="/logo.png" alt="Campusly Logo" className="w-8 h-8 rounded-lg object-contain" />
             <span className="font-heading font-bold text-brand-indigo text-lg tracking-tight hidden sm:block">
               Campusly
             </span>
@@ -279,10 +278,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
                           <p className="text-sm font-semibold text-text-primary dark:text-gray-100 truncate">{user.name}</p>
                           <p className="text-xs text-text-muted truncate">{user.email}</p>
                         </div>
-                        <DropdownItem href="/dashboard/profile" icon={<User size={15} />} label="Dashboard" onClick={() => setDropdownOpen(false)} />
-                        <DropdownItem href="/dashboard/messages" icon={<Bell size={15} />} label="Messages" onClick={() => setDropdownOpen(false)} />
-                        <DropdownItem href="/dashboard/listings" icon={<ListOrdered size={15} />} label="My Listings" onClick={() => setDropdownOpen(false)} />
-                        <DropdownItem href="/dashboard/purchases" icon={<ShoppingBag size={15} />} label="My Purchases" onClick={() => setDropdownOpen(false)} />
+                        <DropdownItem href="/dashboard/profile" icon={<LayoutDashboard size={15} />} label="Dashboard" onClick={() => setDropdownOpen(false)} />
                         {user.role === "admin" && (
                           <DropdownItem href="/admin" icon={<Shield size={15} />} label="Admin Panel" onClick={() => setDropdownOpen(false)} className="text-brand-indigo" />
                         )}
@@ -292,7 +288,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
                             className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                           >
                             <LogOut size={15} />
-                            Log out
+                            Sign out
                           </button>
                         </div>
                       </div>

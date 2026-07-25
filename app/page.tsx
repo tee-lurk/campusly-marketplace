@@ -12,11 +12,13 @@ import { ProductCardSkeleton } from "@/components/marketplace/ProductCardSkeleto
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/components/layout/ThemeProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { FilterState, Product } from "@/lib/types";
+import { API_BASE_URL } from "@/lib/api";
 import { Shield } from "lucide-react";
 
 const PAGE_SIZE = 8;
-const API = "http://localhost:3002";
+const API = API_BASE_URL;
 
 /** Normalise a backend product into the Product shape ProductCard expects */
 function normalise(p: any): Product {
@@ -37,6 +39,10 @@ function normalise(p: any): Product {
       username: p.seller?.profile?.username ?? "unknown",
       avatar: p.seller?.profile?.avatar_url || "/default-avatar.svg",
       isVerified: p.seller?.profile?.is_verified ?? false,
+      email: p.seller?.email ?? "",
+      bio: p.seller?.profile?.bio ?? "",
+      role: (p.seller?.role as any) ?? "student",
+      memberSince: p.seller?.created_at ?? "",
     },
   };
 }
@@ -44,6 +50,7 @@ function normalise(p: any): Product {
 function MarketplaceFeedInner() {
   const searchParams = useSearchParams();
   const { darkMode, toggleDark } = useTheme();
+  const { user } = useAuth();
 
   const [filters, setFilters] = useState<FilterState>({
     category: (searchParams.get("category") as FilterState["category"]) || "",
@@ -87,19 +94,35 @@ function MarketplaceFeedInner() {
     setFilters((f) => ({ ...f, search: query }));
   };
 
-  // Client-side sort only (backend returns newest by default)
+  // Client-side sort with user's own listings prioritized at the top
   const sorted = useMemo(() => {
+    let list = [...products];
+
     switch (filters.sort) {
       case "price-asc":
-        return [...products].sort((a, b) => a.price - b.price);
+        list.sort((a, b) => a.price - b.price);
+        break;
       case "price-desc":
-        return [...products].sort((a, b) => b.price - a.price);
+        list.sort((a, b) => b.price - a.price);
+        break;
       default:
-        return [...products].sort(
+        list.sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
+        break;
     }
-  }, [products, filters.sort]);
+
+    // Always bring seller's own listings to the front
+    if (user?.id) {
+      list.sort((a, b) => {
+        const isMineA = a.seller?.id === user.id ? 1 : 0;
+        const isMineB = b.seller?.id === user.id ? 1 : 0;
+        return isMineB - isMineA;
+      });
+    }
+
+    return list;
+  }, [products, filters.sort, user?.id]);
 
   const visible = sorted.slice(0, page * PAGE_SIZE);
   const hasMore = visible.length < sorted.length;

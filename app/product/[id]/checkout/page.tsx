@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, CreditCard, Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { ChevronLeft, CreditCard, Lock, CheckCircle, AlertCircle, Download } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Spinner } from "@/components/ui/Spinner";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatDate } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api";
 
 type CheckoutState = "form" | "processing" | "success" | "error";
 
@@ -20,6 +21,8 @@ interface BackendProduct {
   title: string;
   price: number;
   status: string;
+  has_purchased?: boolean;
+  purchased_at?: string;
   images: { id: string; image_url: string }[];
   seller: {
     id: string;
@@ -39,6 +42,7 @@ export default function CheckoutPage() {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
@@ -92,7 +96,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:3002/products/${id}`);
+        const token = localStorage.getItem("campusly_access_token");
+        const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           setProduct(await res.json());
         }
@@ -103,7 +110,7 @@ export default function CheckoutPage() {
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -173,7 +180,7 @@ export default function CheckoutPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3002/transactions", {
+      const res = await fetch(`${API_BASE_URL}/transactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,6 +202,57 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleDownload = async () => {
+    if (!product) return;
+    setDownloading(true);
+    try {
+      const token = localStorage.getItem("campusly_access_token");
+      const res = await fetch(`${API_BASE_URL}/products/${product.id}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || "Failed to retrieve download link.");
+        return;
+      }
+      const data = await res.json();
+      if (!data.deliverable_file_url) {
+        alert("File unavailable — contact support");
+        return;
+      }
+
+      const fileUrl = data.deliverable_file_url;
+
+      try {
+        const fileRes = await fetch(fileUrl);
+        const blob = await fileRes.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        const extension = fileUrl.split(".").pop()?.split("?")[0] || "pdf";
+        const cleanTitle = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        a.download = `${cleanTitle}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (corsErr) {
+        const a = document.createElement("a");
+        a.href = fileUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error("Download file error:", err);
+      alert("An error occurred while downloading the file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const images = product.images.map((img) => img.image_url);
   const sellerUsername = product.seller.profile?.username ?? "unknown";
 
@@ -202,8 +260,8 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
         <Navbar darkMode={darkMode} toggleDark={toggleDark} />
-        <main className="flex-1 flex items-center justify-center px-4">
-          <div className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-10 max-w-md w-full text-center animate-slide-up">
+        <main className="flex-1 flex items-center justify-center px-4 py-16 sm:py-20 my-auto">
+          <div className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-8 sm:p-10 max-w-md w-full text-center animate-slide-up shadow-lg">
             <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center mx-auto mb-5">
               <CheckCircle size={32} className="text-green-600" />
             </div>
@@ -220,10 +278,14 @@ export default function CheckoutPage() {
               {formatPrice(product.price)}
             </p>
             <p className="text-xs text-text-muted mb-6">
-              A receipt has been sent to {user.email}. Access your purchase from My Purchases in your dashboard.
+              A receipt has been sent to {user.email}. You can download your private file directly below or access it anytime from My Purchases.
             </p>
-            <div className="flex flex-col gap-2">
-              <Button fullWidth onClick={() => router.push("/dashboard/purchases")}>
+            <div className="flex flex-col gap-3">
+              <Button fullWidth onClick={handleDownload} loading={downloading} className="flex items-center justify-center gap-2">
+                <Download size={16} />
+                {downloading ? "Downloading..." : "Download File"}
+              </Button>
+              <Button variant="secondary" fullWidth onClick={() => router.push("/dashboard/purchases")}>
                 View My Purchases
               </Button>
               <Button variant="ghost" fullWidth onClick={() => router.push("/")}>
@@ -296,6 +358,18 @@ export default function CheckoutPage() {
 
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="md:col-span-3 flex flex-col gap-5">
+            {product.has_purchased && (
+              <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-200 text-sm animate-slide-up">
+                <AlertCircle size={18} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-bold text-sm mb-0.5">Notice: You already bought this item!</p>
+                  <p className="text-xs opacity-90 leading-relaxed">
+                    You previously purchased a copy of <strong>{product.title}</strong>{product.purchased_at ? ` on ${formatDate(product.purchased_at)}` : ""}. Completing this checkout will purchase another copy.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-card dark:bg-card-dark border border-border-soft dark:border-border-dark rounded-xl p-5">
               <div className="flex items-center gap-2 mb-5">
                 <CreditCard size={18} className="text-brand-indigo" />
