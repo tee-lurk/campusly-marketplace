@@ -42,9 +42,9 @@ const sidebarGroups: SidebarGroup[] = [
   {
     label: "My Marketplace",
     items: [
+      { href: "/dashboard/earnings", label: "My Earnings", icon: Wallet },
       { href: "/dashboard/listings", label: "My Listings", icon: ListChecks },
       { href: "/dashboard/purchases", label: "My Purchases", icon: ShoppingBag },
-      { href: "/dashboard/earnings", label: "My Earnings", icon: Wallet },
       { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
     ],
   },

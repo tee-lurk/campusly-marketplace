@@ -278,7 +278,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
                           <p className="text-sm font-semibold text-text-primary dark:text-gray-100 truncate">{user.name}</p>
                           <p className="text-xs text-text-muted truncate">{user.email}</p>
                         </div>
-                        <DropdownItem href="/dashboard/profile" icon={<LayoutDashboard size={15} />} label="Dashboard" onClick={() => setDropdownOpen(false)} />
+                        <DropdownItem href="/dashboard/earnings" icon={<LayoutDashboard size={15} />} label="Dashboard" onClick={() => setDropdownOpen(false)} />
                         {user.role === "admin" && (
                           <DropdownItem href="/admin" icon={<Shield size={15} />} label="Admin Panel" onClick={() => setDropdownOpen(false)} className="text-brand-indigo" />
                         )}
