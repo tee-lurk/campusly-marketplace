@@ -18,6 +18,8 @@ import {
   Bell,
   AlertCircle,
   CheckCircle,
+  Menu,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,9 +30,10 @@ interface NavbarProps {
   searchValue?: string;
   darkMode: boolean;
   toggleDark: () => void;
+  onMobileMenuToggle?: () => void;
 }
 
-export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: NavbarProps) {
+export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMobileMenuToggle }: NavbarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -120,13 +123,24 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
     <header className="sticky top-0 z-40 bg-card/95 dark:bg-card-dark/95 backdrop-blur-sm border-b border-border-soft dark:border-border-dark">
       <div className={isDashboard ? "w-full px-4 sm:px-6 lg:px-8" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
         <div className="flex items-center gap-4 h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src="/logo.png" alt="Campusly Logo" className="w-8 h-8 rounded-lg object-contain" />
-            <span className="font-heading font-bold text-brand-indigo text-lg tracking-tight hidden sm:block">
-              Campusly
-            </span>
-          </Link>
+          {/* Logo & Hamburger side-by-side */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {onMobileMenuToggle && (
+              <button
+                onClick={onMobileMenuToggle}
+                className="lg:hidden p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none active:scale-95"
+                aria-label="Open navigation menu"
+              >
+                <Menu size={22} className="text-brand-indigo" />
+              </button>
+            )}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+              <img src="/logo.png" alt="Campusly Logo" className="w-8 h-8 rounded-lg object-contain" />
+              <span className="font-heading font-bold text-brand-indigo text-lg tracking-tight hidden sm:block">
+                Campusly
+              </span>
+            </Link>
+          </div>
 
           {/* Search bar */}
           {!isDashboard ? (
@@ -168,6 +182,18 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark }: Nav
               </>
             ) : (
               <div className="flex items-center gap-2">
+                {/* Plus button for New Listing on dashboard */}
+                {isDashboard && (
+                  <Link
+                    href="/dashboard/listings/new"
+                    className="w-9 h-9 rounded-xl bg-brand-indigo text-white flex items-center justify-center shadow-sm hover:bg-brand-indigo/90 transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                    title="Create New Listing"
+                    aria-label="New Listing"
+                  >
+                    <Plus size={18} />
+                  </Link>
+                )}
+
                 <div className="relative" ref={notifRef}>
                     <button
                       onClick={handleOpenNotifs}

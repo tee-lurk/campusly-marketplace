@@ -123,128 +123,115 @@ function DashboardLayoutInner({
 
   return (
     <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col font-sans text-gray-800 dark:text-gray-200">
-      <Navbar darkMode={darkMode} toggleDark={toggleDark} />
-
-      {/* ── MOBILE HAMBURGER TOP BAR (< lg screens) ──────────────────── */}
-      <div className="lg:hidden w-full bg-[#F0F0EC] dark:bg-[#101216] border-b border-[#E5E5E0] dark:border-[#26282E] sticky top-[64px] z-30 px-4 py-2.5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-xl bg-white dark:bg-[#1E2028] border border-[#E5E5E0] dark:border-[#2A2D36] text-[#1A1A18] dark:text-gray-100 shadow-sm active:scale-95 transition-transform"
-            aria-label="Open Dashboard Menu"
-          >
-            <Menu size={20} className="text-brand-indigo" />
-          </button>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-brand-indigo block">
-              Dashboard Navigation
-            </span>
-            <h2 className="text-sm font-extrabold font-heading text-[#1A1A18] dark:text-[#F0F0F0] leading-tight">
-              {activeItem?.label || "My Dashboard"}
-            </h2>
-          </div>
-        </div>
-
-        <Link
-          href="/dashboard/listings/new"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-indigo text-white text-xs font-semibold shadow-sm hover:bg-brand-indigo/90 transition-colors"
-        >
-          <PlusCircle size={14} />
-          <span>New Listing</span>
-        </Link>
-      </div>
+      <Navbar
+        darkMode={darkMode}
+        toggleDark={toggleDark}
+        onMobileMenuToggle={() => setMobileMenuOpen(true)}
+      />
 
       {/* ── MOBILE SLIDE-OVER DRAWER SIDEBAR (< lg screens) ───────────── */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop overlay */}
-          <div
-            onClick={() => setMobileMenuOpen(false)}
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
-          />
+      <div
+        className={cn(
+          "lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ease-in-out",
+          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      >
+        {/* Backdrop overlay */}
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className={cn(
+            "fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out",
+            mobileMenuOpen ? "opacity-100" : "opacity-0"
+          )}
+        />
 
-          {/* Drawer Content */}
-          <div className="relative w-[285px] max-w-[85vw] bg-[#fdfdfd] dark:bg-[#101216] text-gray-900 dark:text-white h-full flex flex-col shadow-2xl z-50 border-r border-gray-100 dark:border-[#26282E]">
-            {/* Header */}
-            <div className="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between bg-gray-50/50 dark:bg-slate-950/40">
-              <div className="flex items-center gap-3">
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-brand-indigo shadow-md"
-                />
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold font-heading truncate leading-tight text-gray-900 dark:text-white">
-                    {user.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 truncate">@{user.username}</p>
+        {/* Drawer Content */}
+        <div
+          className={cn(
+            "relative w-[285px] max-w-[85vw] bg-[#fdfdfd] dark:bg-[#101216] text-gray-900 dark:text-white h-full flex flex-col shadow-2xl z-50 border-r border-gray-100 dark:border-[#26282E] transform transition-transform duration-300 ease-in-out",
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          {/* Header */}
+          <div className="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between bg-gray-50/50 dark:bg-slate-950/40">
+            <div className="flex items-center gap-3">
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-10 h-10 rounded-full object-cover border-2 border-brand-indigo shadow-md"
+              />
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold font-heading truncate leading-tight text-gray-900 dark:text-white">
+                  {user.name}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400 truncate">@{user.username}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1.5 rounded-lg text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Navigation links */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+            {sidebarGroups.map((group, idx) => (
+              <div key={idx}>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-indigo-400 px-2 block mb-2">
+                  {group.label}
+                </span>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.tab
+                      ? pathname === "/dashboard/profile" && currentTab === item.tab
+                      : pathname === item.href ||
+                        (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+                          active
+                            ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
+                            : "text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon size={18} className={active ? "text-white" : "text-gray-400 dark:text-slate-400"} />
+                          <span>{item.label}</span>
+                        </div>
+                        <ChevronRight size={14} className={active ? "text-white/80" : "text-gray-400 dark:text-slate-600"} />
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                aria-label="Close menu"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            ))}
+          </div>
 
-            {/* Navigation links */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-              {sidebarGroups.map((group, idx) => (
-                <div key={idx}>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-indigo-400 px-2 block mb-2">
-                    {group.label}
-                  </span>
-                  <div className="space-y-1">
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const active = item.tab
-                        ? pathname === "/dashboard/profile" && currentTab === item.tab
-                        : pathname === item.href ||
-                          (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
-
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={cn(
-                            "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all",
-                            active
-                              ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
-                              : "text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Icon size={18} className={active ? "text-white" : "text-gray-400 dark:text-slate-400"} />
-                            <span>{item.label}</span>
-                          </div>
-                          <ChevronRight size={14} className={active ? "text-white/80" : "text-gray-400 dark:text-slate-600"} />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom Log out Action */}
-            <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-slate-950/40">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                  router.replace("/login");
-                }}
-                className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 rounded-xl transition-all"
-              >
-                <LogOut size={18} className="text-white" />
-                <span>Log out</span>
-              </button>
-            </div>
+          {/* Bottom Log out Action */}
+          <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-slate-950/40">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                logout();
+                router.replace("/login");
+              }}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 rounded-xl transition-all duration-200"
+            >
+              <LogOut size={18} className="text-white" />
+              <span>Log out</span>
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ── DESKTOP MAIN WRAPPER ─────────────────────────────────────── */}
       <div className="flex-1 w-full flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
