@@ -304,7 +304,7 @@ export default function AdminOverviewPage() {
           </div>
           <div>
             <div className="text-[11px] font-medium text-gray-500 mb-0.5">Total Revenue</div>
-            <div className="text-[22px] font-bold text-gray-900 mb-1 text-nowrap">ETB {loading ? "..." : (stats?.totalRevenue ?? 0).toLocaleString()}</div>
+            <div className="text-lg sm:text-[22px] font-bold text-gray-900 mb-1 truncate">ETB {loading ? "..." : (stats?.totalRevenue ?? 0).toLocaleString()}</div>
             <div className="text-[11px] font-medium text-emerald-500 bg-emerald-50 w-fit px-2 py-0.5 rounded-full">+500 (26%)</div>
           </div>
         </div>

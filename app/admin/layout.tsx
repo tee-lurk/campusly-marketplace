@@ -20,7 +20,10 @@ import {
   Mail,
   LogOut,
   Hexagon,
-  CheckCircle2
+  CheckCircle2,
+  Menu,
+  X,
+  ChevronRight
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -56,6 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Notifications State
   const [showNotifications, setShowNotifications] = useState(false);
@@ -86,6 +90,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
   }, [user, isLoading, router]);
+
+  // Close mobile menu on navigate
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Fetch pending verifications to use as notifications
   useEffect(() => {
@@ -220,59 +229,75 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const headerContent = getHeaderContent();
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] flex font-sans text-gray-800">
-      {/* Sidebar */}
-      <aside
+    <div className="min-h-screen bg-[#f4f5f7] flex flex-col font-sans text-gray-800">
+      {/* ── MOBILE SLIDE-OVER DRAWER SIDEBAR (< lg screens) ───────────── */}
+      <div
         className={cn(
-          "bg-[#fdfdfd] flex flex-col transition-all duration-300 border-r border-gray-100",
-          sidebarOpen ? "w-[260px]" : "w-[80px]"
+          "lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ease-in-out",
+          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       >
-        {/* Logo Area */}
-        <div className="h-[72px] flex items-center justify-between px-6 border-b border-transparent">
-          <div className={cn("flex items-center gap-2", !sidebarOpen && "hidden")}>
-            <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded object-contain" />
-            <span className="font-bold text-lg text-gray-900">Campusly</span>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-gray-400 hover:text-gray-600 p-1"
-          >
-            <ChevronsLeft size={20} className={cn("transition-transform", !sidebarOpen && "rotate-180")} />
-          </button>
-        </div>
+        {/* Backdrop overlay */}
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className={cn(
+            "fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out",
+            mobileMenuOpen ? "opacity-100" : "opacity-0"
+          )}
+        />
 
-        {/* Navigation Lists */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-2">
+        {/* Drawer Content */}
+        <div
+          className={cn(
+            "relative w-[285px] max-w-[85vw] bg-[#fdfdfd] text-gray-900 h-full flex flex-col shadow-2xl z-50 border-r border-gray-100 transform transition-transform duration-300 ease-in-out",
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          {/* Header */}
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded object-contain" />
+              <span className="font-bold text-lg text-gray-900">Campusly</span>
+              <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1">Admin</span>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Navigation links */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
             {sidebarGroups.map((group, idx) => (
-              <div key={idx} className="mb-6">
-                {sidebarOpen && (
-                  <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    {group.label}
-                  </div>
-                )}
-                <div className="flex flex-col gap-1">
+              <div key={idx}>
+                <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {group.label}
+                </div>
+                <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all",
+                          "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
                           active
                             ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
                             : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                         )}
-                        title={!sidebarOpen ? item.label : undefined}
                       >
                         <div className="flex items-center gap-3">
                           <Icon size={18} className={active ? "text-white" : "text-gray-400"} />
-                          {sidebarOpen && <span>{item.label}</span>}
+                          <span>{item.label}</span>
                         </div>
-                        {sidebarOpen && item.badge && (
+                        {item.badge && (
                           <span className={cn(
                             "text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center",
                             active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
@@ -288,13 +313,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ))}
 
             {/* Bottom Tools */}
-            <div className="mt-8 mb-4">
-              {sidebarOpen && (
-                <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Profit
-                </div>
-              )}
-              <div className="flex flex-col gap-1">
+            <div>
+              <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Profit
+              </div>
+              <div className="space-y-1">
                 {bottomItems.map((item) => {
                   const active = item.href !== "#" && pathname.startsWith(item.href);
                   const isNotif = item.label === "Notifications";
@@ -304,19 +327,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={item.label}
                       href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
                       className={cn(
-                        "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all",
+                        "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
                         active
                           ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
                           : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                       )}
-                      title={!sidebarOpen ? item.label : undefined}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon size={18} className={active ? "text-white" : "text-gray-400"} />
-                        {sidebarOpen && <span>{item.label}</span>}
+                        <span>{item.label}</span>
                       </div>
-                      {sidebarOpen && badgeValue && (
+                      {badgeValue && (
                         <span className={cn(
                           "text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center",
                           active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600",
@@ -332,45 +355,196 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          <div className="p-4 border-t border-gray-100">
+          {/* Bottom Log out Action */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50/50">
             <button
-              onClick={logout}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 transition-all"
-              title={!sidebarOpen ? "Log out" : undefined}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                logout();
+              }}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 rounded-xl transition-all duration-200"
             >
-              <div className="flex items-center gap-3">
-                <LogOut size={18} className="text-white" />
-                {sidebarOpen && <span>Log out</span>}
-              </div>
+              <LogOut size={18} className="text-white" />
+              <span>Log out</span>
             </button>
           </div>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Top Header */}
-        <header className="min-h-[80px] py-4 bg-white border-b border-gray-100 flex items-center justify-between px-8 flex-shrink-0 z-40 relative">
-          
-          {/* Dynamic Header */}
-          <div className="flex flex-col justify-center">
-            <h1 className="text-[22px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              {headerContent.title}
-            </h1>
-            {headerContent.subtitle && (
-              <p className="text-sm text-gray-500 mt-0.5">{headerContent.subtitle}</p>
-            )}
+      {/* ── MAIN WRAPPER ─────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-screen">
+        
+        {/* DESKTOP SIDEBAR (≥ lg screens) */}
+        <aside
+          className={cn(
+            "hidden lg:flex flex-col bg-[#fdfdfd] transition-all duration-300 ease-in-out border-r border-gray-100 sticky top-0 h-screen overflow-hidden z-30 flex-shrink-0",
+            sidebarOpen ? "w-[260px]" : "w-[80px]"
+          )}
+        >
+          {/* Logo Area */}
+          <div className="h-[72px] flex items-center justify-between px-6 border-b border-gray-100 flex-shrink-0">
+            <div className={cn("flex items-center gap-2", !sidebarOpen && "hidden")}>
+              <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded object-contain" />
+              <span className="font-bold text-lg text-gray-900">Campusly</span>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <ChevronsLeft size={20} className={cn("transition-transform duration-300", !sidebarOpen && "rotate-180")} />
+            </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Actions */}
-            <div className="flex items-center gap-4">
+          {/* Navigation Lists */}
+          <div className="flex-1 flex flex-col min-h-0 justify-between">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3">
+              {sidebarGroups.map((group, idx) => (
+                <div key={idx} className="mb-6">
+                  {sidebarOpen && (
+                    <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      {group.label}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center px-3 py-2.5 rounded-xl text-[13px] transition-all",
+                            active
+                              ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
+                            sidebarOpen ? "justify-between" : "justify-center px-0"
+                          )}
+                          title={!sidebarOpen ? item.label : undefined}
+                        >
+                          <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
+                            <Icon size={18} className={active ? "text-white" : "text-gray-400"} />
+                            {sidebarOpen && <span>{item.label}</span>}
+                          </div>
+                          {sidebarOpen && item.badge && (
+                            <span className={cn(
+                              "text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center",
+                              active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                            )}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Bottom Tools */}
+              <div className="mt-8 mb-4">
+                {sidebarOpen && (
+                  <div className="px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    Profit
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  {bottomItems.map((item) => {
+                    const active = item.href !== "#" && pathname.startsWith(item.href);
+                    const isNotif = item.label === "Notifications";
+                    const badgeValue = isNotif ? (hasUnread ? unreadCount : undefined) : item.badge;
+                      
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center px-3 py-2.5 rounded-xl text-[13px] transition-all",
+                          active
+                            ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
+                          sidebarOpen ? "justify-between" : "justify-center px-0"
+                        )}
+                        title={!sidebarOpen ? item.label : undefined}
+                      >
+                        <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
+                          <item.icon size={18} className={active ? "text-white" : "text-gray-400"} />
+                          {sidebarOpen && <span>{item.label}</span>}
+                        </div>
+                        {sidebarOpen && badgeValue && (
+                          <span className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[20px] text-center",
+                            active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600",
+                            isNotif && hasUnread && !active ? "bg-red-500 text-white shadow-sm shadow-red-500/20" : ""
+                          )}>
+                            {badgeValue}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={logout}
+                className={cn(
+                  "w-full flex items-center px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 transition-all",
+                  sidebarOpen ? "justify-between" : "justify-center px-0"
+                )}
+                title={!sidebarOpen ? "Log out" : undefined}
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut size={18} className="text-white" />
+                  {sidebarOpen && <span>Log out</span>}
+                </div>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+          {/* Top Header */}
+          <header className="min-h-[64px] sm:min-h-[80px] py-3 sm:py-4 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-40 relative">
+            
+            {/* Top Left: Hamburger & Logo on mobile, Title on Desktop */}
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none active:scale-95 flex-shrink-0"
+                aria-label="Open Admin Menu"
+              >
+                <Menu size={22} className="text-indigo-600" />
+              </button>
+
+              <div className="flex lg:hidden items-center gap-2 flex-shrink-0">
+                <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded object-contain" />
+                <span className="font-bold text-base text-gray-900">Campusly</span>
+                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Admin</span>
+              </div>
+
+              <div className="hidden lg:flex flex-col justify-center min-w-0">
+                <h1 className="text-[22px] font-bold text-gray-900 tracking-tight flex items-center gap-2 truncate">
+                  {headerContent.title}
+                </h1>
+                {headerContent.subtitle && (
+                  <p className="text-sm text-gray-500 mt-0.5 truncate">{headerContent.subtitle}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Top Right: Actions & User */}
+            <div className="flex items-center gap-3 flex-shrink-0">
               
               {/* Notification Dropdown Container */}
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all relative shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all relative shadow-sm bg-white focus:outline-none"
                 >
                   {hasUnread && (
                     <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
@@ -380,7 +554,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 {/* Dropdown Card */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                       <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
                       {hasUnread && (
@@ -447,22 +621,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
               </div>
 
-              <button className="flex items-center justify-center rounded-full ring-2 ring-white hover:ring-indigo-500/20 transition-all shadow-sm">
+              <div className="flex items-center justify-center rounded-full ring-2 ring-white shadow-sm flex-shrink-0">
                 <img
                   src={user.avatar}
                   alt="Profile"
-                  className="w-10 h-10 rounded-full object-cover bg-gray-200"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-200"
                 />
-              </button>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Scrollable Page Content */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar relative z-0">
-          {children}
-        </div>
-      </main>
+          {/* Mobile Page Subheader Title */}
+          <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-3 shadow-xs">
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              {headerContent.title}
+            </h1>
+            {headerContent.subtitle && (
+              <p className="text-xs text-gray-500 mt-0.5">{headerContent.subtitle}</p>
+            )}
+          </div>
+
+          {/* Scrollable Page Content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar relative z-0">
+            {children}
+          </div>
+        </main>
+      </div>
 
       {/* Basic scrollbar styles for this layout */}
       <style dangerouslySetInnerHTML={{__html: `
