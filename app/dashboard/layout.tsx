@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  PlusCircle
+  PlusCircle,
+  ChevronsLeft,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,16 +26,41 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/dashboard/listings", label: "My Listings", icon: ListChecks, section: "dashboard" },
-  { href: "/dashboard/purchases", label: "My Purchases", icon: ShoppingBag, section: "dashboard" },
-  { href: "/dashboard/earnings", label: "My Earnings", icon: Wallet, section: "dashboard" },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare, section: "dashboard" },
-  { href: "/dashboard/profile", label: "Profile Settings", icon: User, tab: "profile", section: "account" },
-  { href: "/dashboard/profile?tab=password", label: "Password", icon: Lock, tab: "password", section: "account" },
-  { href: "/dashboard/profile?tab=notifications", label: "Notifications", icon: Bell, tab: "notifications", section: "account" },
-  { href: "/dashboard/profile?tab=verification", label: "Verification", icon: ShieldCheck, tab: "verification", section: "account" },
+interface SidebarItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  tab?: string;
+}
+
+interface SidebarGroup {
+  label: string;
+  items: SidebarItem[];
+}
+
+const sidebarGroups: SidebarGroup[] = [
+  {
+    label: "My Marketplace",
+    items: [
+      { href: "/dashboard/listings", label: "My Listings", icon: ListChecks },
+      { href: "/dashboard/purchases", label: "My Purchases", icon: ShoppingBag },
+      { href: "/dashboard/earnings", label: "My Earnings", icon: Wallet },
+      { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+    ],
+  },
+  {
+    label: "Account Settings",
+    items: [
+      { href: "/dashboard/profile", label: "Profile Settings", icon: User, tab: "profile" },
+      { href: "/dashboard/profile?tab=password", label: "Password", icon: Lock, tab: "password" },
+      { href: "/dashboard/profile?tab=notifications", label: "Notifications", icon: Bell, tab: "notifications" },
+      { href: "/dashboard/profile?tab=verification", label: "Verification", icon: ShieldCheck, tab: "verification" },
+    ],
+  },
 ];
+
+// Flat list for easy matching
+const allNavItems = sidebarGroups.flatMap((g) => g.items);
 
 function DashboardLayoutInner({
   children,
@@ -48,6 +74,23 @@ function DashboardLayoutInner({
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab") || "profile";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Load sidebar preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("user_sidebar_open");
+    if (saved !== null) {
+      setSidebarOpen(saved === "true");
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem("user_sidebar_open", String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -71,7 +114,7 @@ function DashboardLayoutInner({
   if (!user) return null;
 
   // Determine current active item label for mobile top bar
-  const activeItem = navItems.find((item) =>
+  const activeItem = allNavItems.find((item) =>
     item.tab
       ? pathname === "/dashboard/profile" && currentTab === item.tab
       : pathname === item.href ||
@@ -79,7 +122,7 @@ function DashboardLayoutInner({
   );
 
   return (
-    <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
+    <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col font-sans text-gray-800 dark:text-gray-200">
       <Navbar darkMode={darkMode} toggleDark={toggleDark} />
 
       {/* ── MOBILE HAMBURGER TOP BAR (< lg screens) ──────────────────── */}
@@ -121,9 +164,9 @@ function DashboardLayoutInner({
           />
 
           {/* Drawer Content */}
-          <div className="relative w-[285px] max-w-[85vw] bg-[#12141C] text-white h-full flex flex-col shadow-2xl z-50 animate-slide-right">
+          <div className="relative w-[285px] max-w-[85vw] bg-[#fdfdfd] dark:bg-[#101216] text-gray-900 dark:text-white h-full flex flex-col shadow-2xl z-50 border-r border-gray-100 dark:border-[#26282E]">
             {/* Header */}
-            <div className="p-5 border-b border-white/10 flex items-center justify-between bg-slate-950/40">
+            <div className="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between bg-gray-50/50 dark:bg-slate-950/40">
               <div className="flex items-center gap-3">
                 <img
                   src={user.avatar}
@@ -131,15 +174,15 @@ function DashboardLayoutInner({
                   className="w-10 h-10 rounded-full object-cover border-2 border-brand-indigo shadow-md"
                 />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold font-heading truncate text-white leading-tight">
+                  <h3 className="text-sm font-bold font-heading truncate leading-tight text-gray-900 dark:text-white">
                     {user.name}
                   </h3>
-                  <p className="text-xs text-slate-400 truncate">@{user.username}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 truncate">@{user.username}</p>
                 </div>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                 aria-label="Close menu"
               >
                 <X size={20} />
@@ -147,90 +190,55 @@ function DashboardLayoutInner({
             </div>
 
             {/* Navigation links */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Dashboard Section */}
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 px-3 block mb-2">
-                  My Marketplace
-                </span>
-                <div className="space-y-1">
-                  {navItems
-                    .filter((item) => item.section === "dashboard")
-                    .map((item) => {
-                      const Icon = item.icon;
-                      const active = pathname === item.href ||
-                        (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
-
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={cn(
-                            "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                            active
-                              ? "bg-brand-indigo text-white font-semibold shadow-md shadow-brand-indigo/30"
-                              : "text-slate-300 hover:bg-white/10 hover:text-white"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Icon size={18} className={active ? "text-white" : "text-slate-400"} />
-                            <span>{item.label}</span>
-                          </div>
-                          <ChevronRight size={14} className={active ? "text-white/80" : "text-slate-600"} />
-                        </Link>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Account Settings Section */}
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 px-3 block mb-2">
-                  Account Settings
-                </span>
-                <div className="space-y-1">
-                  {navItems
-                    .filter((item) => item.section === "account")
-                    .map((item) => {
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+              {sidebarGroups.map((group, idx) => (
+                <div key={idx}>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-indigo-400 px-2 block mb-2">
+                    {group.label}
+                  </span>
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
                       const Icon = item.icon;
                       const active = item.tab
                         ? pathname === "/dashboard/profile" && currentTab === item.tab
-                        : pathname === item.href;
+                        : pathname === item.href ||
+                          (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
 
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                            "flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all",
                             active
-                              ? "bg-brand-indigo text-white font-semibold shadow-md shadow-brand-indigo/30"
-                              : "text-slate-300 hover:bg-white/10 hover:text-white"
+                              ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
+                              : "text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <Icon size={18} className={active ? "text-white" : "text-slate-400"} />
+                            <Icon size={18} className={active ? "text-white" : "text-gray-400 dark:text-slate-400"} />
                             <span>{item.label}</span>
                           </div>
-                          <ChevronRight size={14} className={active ? "text-white/80" : "text-slate-600"} />
+                          <ChevronRight size={14} className={active ? "text-white/80" : "text-gray-400 dark:text-slate-600"} />
                         </Link>
                       );
                     })}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
 
             {/* Bottom Log out Action */}
-            <div className="p-4 border-t border-white/10 bg-slate-950/40">
+            <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-slate-950/40">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   logout();
                   router.replace("/login");
                 }}
-                className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 rounded-xl transition-all"
+                className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 rounded-xl transition-all"
               >
-                <LogOut size={18} />
+                <LogOut size={18} className="text-white" />
                 <span>Log out</span>
               </button>
             </div>
@@ -242,79 +250,142 @@ function DashboardLayoutInner({
       <div className="flex-1 w-full flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
         
         {/* ── DESKTOP SIDEBAR (≥ lg screens) ───────────────────────────── */}
-        <aside className="hidden lg:flex w-[260px] bg-[#F0F0EC] dark:bg-[#101216] flex-col flex-shrink-0 sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto z-30 border-r border-[#E5E5E0] dark:border-[#26282E]">
-          
-          {/* User info block */}
-          <div className="p-6 border-b border-[#E5E5E0] dark:border-[#26282E]">
-            <div className="flex items-center gap-3">
+        <aside
+          className={cn(
+            "hidden lg:flex flex-col bg-[#fdfdfd] dark:bg-[#101216] transition-all duration-300 border-r border-gray-100 dark:border-[#26282E] sticky top-[64px] h-[calc(100vh-64px)] overflow-hidden z-30 flex-shrink-0",
+            sidebarOpen ? "w-[260px]" : "w-[80px]"
+          )}
+        >
+          {/* User info & Collapse toggle header */}
+          <div className="h-[72px] flex items-center justify-between px-4 border-b border-gray-100 dark:border-[#26282E] flex-shrink-0">
+            <div className={cn("flex items-center gap-3 min-w-0 flex-1", !sidebarOpen && "hidden")}>
               <img
                 src={user.avatar}
                 alt={user.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-[#26282E] shadow-sm"
+                className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm flex-shrink-0 bg-gray-200"
               />
               <div className="min-w-0">
-                <h2 className="text-base font-bold font-heading truncate leading-tight text-[#1A1A18] dark:text-[#F0F0F0]">
+                <h2 className="text-sm font-bold truncate leading-tight text-gray-900 dark:text-gray-100">
                   {user.name}
                 </h2>
-                <p className="text-sm text-[#6B6B66] truncate">
+                <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
                   @{user.username}
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* Navigation links */}
-          <div className="flex-1 py-3 flex flex-col gap-0.5 px-3">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = item.tab
-                ? pathname === "/dashboard/profile" && currentTab === item.tab
-                : pathname === item.href ||
-                  (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
+            {!sidebarOpen && (
+              <div className="w-full flex items-center justify-center">
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm bg-gray-200"
+                  title={user.name}
+                />
+              </div>
+            )}
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 h-11 text-sm transition-all duration-150 rounded-lg font-medium select-none relative",
-                    active
-                      ? "bg-brand-indigo/10 text-brand-indigo font-semibold"
-                      : "text-[#6B6B66] hover:bg-[#E5E5E0] dark:hover:bg-[#1e2028] hover:text-[#1A1A18] dark:hover:text-[#F0F0F0]"
-                  )}
-                >
-                  {/* Active left accent bar */}
-                  {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-brand-indigo rounded-r-full" />
-                  )}
-                  <Icon size={20} className={active ? "text-brand-indigo" : ""} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Logout pinned to bottom */}
-          <div className="p-3 border-t border-[#E5E5E0] dark:border-[#26282E] mt-auto">
             <button
-              onClick={() => {
-                logout();
-                router.replace("/login");
-              }}
-              className="w-full flex items-center gap-3 px-3 h-11 text-sm text-red-500/80 hover:bg-red-500/10 hover:text-red-600 transition-all rounded-lg font-semibold cursor-pointer select-none"
-              title="Log out"
+              onClick={toggleSidebar}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1e2028] transition-colors flex-shrink-0"
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
-              <LogOut size={20} />
-              <span>Log out</span>
+              <ChevronsLeft
+                size={20}
+                className={cn("transition-transform duration-300", !sidebarOpen && "rotate-180")}
+              />
             </button>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 flex flex-col justify-between">
+            <div className="space-y-6">
+              {sidebarGroups.map((group, idx) => (
+                <div key={idx}>
+                  {sidebarOpen && (
+                    <div className="px-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                      {group.label}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const active = item.tab
+                        ? pathname === "/dashboard/profile" && currentTab === item.tab
+                        : pathname === item.href ||
+                          (item.href === "/dashboard/listings" && pathname.startsWith("/dashboard/listings"));
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center px-3 py-2.5 rounded-xl text-[13px] transition-all",
+                            active
+                              ? "bg-[#3b82f6] text-white font-semibold shadow-md shadow-blue-500/20"
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#1e2028] dark:hover:text-white",
+                            !sidebarOpen && "justify-center px-0"
+                          )}
+                          title={!sidebarOpen ? item.label : undefined}
+                        >
+                          <div className={cn("flex items-center gap-3", !sidebarOpen && "justify-center")}>
+                            <Icon size={18} className={active ? "text-white" : "text-gray-400 dark:text-gray-400"} />
+                            {sidebarOpen && <span>{item.label}</span>}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Logout pinned at bottom of navigation scroll */}
+            <div className="pt-4 border-t border-gray-100 dark:border-[#26282E] mt-6">
+              <button
+                onClick={() => {
+                  logout();
+                  router.replace("/login");
+                }}
+                className={cn(
+                  "w-full flex items-center px-3 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 transition-all",
+                  sidebarOpen ? "justify-between" : "justify-center px-0"
+                )}
+                title={!sidebarOpen ? "Log out" : undefined}
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut size={18} className="text-white" />
+                  {sidebarOpen && <span>Log out</span>}
+                </div>
+              </button>
+            </div>
           </div>
         </aside>
 
         {/* ── Main content area ───────────────────────────────────── */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 bg-[#FAFAF8] dark:bg-[#16181D] overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 bg-[#FAFAF8] dark:bg-[#16181D] overflow-y-auto custom-scrollbar">
           {children}
         </main>
       </div>
+
+      {/* Custom Scrollbar Styling matching Admin Panel */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.3);
+          border-radius: 10px;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.5);
+        }
+      `}} />
     </div>
   );
 }
