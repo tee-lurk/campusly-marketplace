@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Menu,
   Plus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +43,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchVal, setSearchVal] = useState(searchValue);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +52,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Track scroll position for sticky background blur & subtle border
+  // Track scroll position for sticky background blur
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -122,6 +124,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch?.(searchVal);
+    setMobileSearchOpen(false);
     if (pathname !== "/") router.push(`/?search=${encodeURIComponent(searchVal)}`);
   };
 
@@ -144,9 +147,9 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
       )}
     >
       <div className={isDashboard ? "w-full px-4 sm:px-6 lg:px-8" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
-        <div className="flex items-center gap-4 h-16">
+        <div className="flex items-center justify-between gap-3 h-16 relative">
           
-          {/* Logo & Hamburger */}
+          {/* Logo & Hamburger side-by-side */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {onMobileMenuToggle && (
               <motion.button
@@ -162,20 +165,20 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
               <div className="w-8 h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
                 <img src="/logo.png" alt="Campusly Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="font-heading font-extrabold text-[#2E3192] text-xl tracking-tight hidden sm:block">
+              <span className="font-heading font-extrabold text-[#2E3192] text-xl tracking-tight">
                 Campusly
               </span>
             </Link>
           </div>
 
-          {/* Animated Search bar */}
-          {!isDashboard ? (
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-auto">
+          {/* Desktop Search Bar (Hidden on Mobile) */}
+          {!isDashboard && (
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-auto">
               <motion.div
                 animate={{ scale: searchFocused ? 1.01 : 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 className={cn(
-                  "relative rounded-full transition-all duration-200",
+                  "relative w-full rounded-full transition-all duration-200",
                   searchFocused
                     ? "ring-2 ring-[#2E3192]/20 border-[#2E3192] shadow-xs"
                     : "border-[#E5E5E0] dark:border-[#26282E]"
@@ -202,27 +205,75 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                 />
               </motion.div>
             </form>
-          ) : (
-            <div className="flex-1" />
           )}
 
+          {/* Mobile Search Overlay Window */}
+          <AnimatePresence>
+            {mobileSearchOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute inset-x-0 top-0 h-16 bg-[#FDFBF5] dark:bg-[#18181C] px-3 flex items-center gap-2 z-50 border-b border-[#E5E5E0] dark:border-[#26282E] shadow-md md:hidden"
+              >
+                <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2E3192]" />
+                    <input
+                      autoFocus
+                      type="search"
+                      value={searchVal}
+                      onChange={(e) => {
+                        setSearchVal(e.target.value);
+                        if (isSearchPage) onSearch?.(e.target.value);
+                      }}
+                      placeholder="Search modules, notes, past exams..."
+                      className="w-full pl-10 pr-4 py-2 text-xs rounded-full border border-[#2E3192] bg-white dark:bg-card-dark text-gray-900 dark:text-gray-100 focus:outline-none ring-2 ring-[#2E3192]/20"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen(false)}
+                    className="p-2 rounded-xl text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Right side controls */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            
+            {/* Mobile Search Icon Button */}
+            {!isDashboard && (
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setMobileSearchOpen(true)}
+                className="md:hidden p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                aria-label="Open search"
+              >
+                <Search size={19} className="text-gray-600 dark:text-gray-300" />
+              </motion.button>
+            )}
+
             {!user ? (
               <>
                 <Link href="/login">
                   <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button variant="ghost" size="sm" className="font-semibold text-gray-700 dark:text-gray-300">Log in</Button>
+                    <Button variant="ghost" size="sm" className="font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 px-2.5 sm:px-3">Log in</Button>
                   </motion.div>
                 </Link>
                 <Link href="/register">
                   <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button size="sm" className="bg-[#2E3192] hover:bg-[#2E3192]/90 font-semibold shadow-xs">Sign up</Button>
+                    <Button size="sm" className="bg-[#2E3192] hover:bg-[#2E3192]/90 font-semibold shadow-xs text-xs sm:text-sm px-3">Sign up</Button>
                   </motion.div>
                 </Link>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Plus button for New Listing on dashboard */}
                 {isDashboard && (
                   <motion.div whileTap={{ scale: 0.95 }}>
@@ -242,7 +293,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                   <motion.button
                     whileTap={{ scale: 0.92 }}
                     onClick={handleOpenNotifs}
-                    className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+                    className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative cursor-pointer"
                     aria-label="Notifications"
                   >
                     <Bell size={18} />
@@ -335,7 +386,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                         setNotifOpen(false);
                         setDropdownOpen((v) => !v);
                       }}
-                      className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                       aria-haspopup="true"
                       aria-expanded={dropdownOpen}
                     >
@@ -376,7 +427,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                           <div className="border-t border-gray-100 dark:border-[#26282E] mt-1 pt-1">
                             <button
                               onClick={handleLogout}
-                              className="flex items-center gap-2.5 w-full px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+                              className="flex items-center gap-2.5 w-full px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors cursor-pointer"
                             >
                               <LogOut size={15} />
                               Sign out
