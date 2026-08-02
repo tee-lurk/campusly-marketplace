@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, ExternalLink, Download, Trash2, AlertCircle, Star, MessageCircle } from "lucide-react";
+import { ShoppingBag, ExternalLink, Download, Trash2, AlertCircle, Star } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -106,7 +106,7 @@ export default function PurchasesPage() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
-      } catch (corsErr) {
+      } catch {
         const a = document.createElement("a");
         a.href = fileUrl;
         a.target = "_blank";
@@ -163,19 +163,19 @@ export default function PurchasesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" className="text-brand-indigo" />
+        <Spinner size="lg" className="text-[#2E3192]" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full overflow-x-hidden">
       {/* Title */}
       <div>
-        <h1 className="text-2xl md:text-[28px] font-bold font-heading text-[#1A1A18] dark:text-[#F0F0F0] leading-tight">
+        <h1 className="text-xl sm:text-2xl md:text-[28px] font-bold font-heading text-gray-900 dark:text-gray-100 leading-tight">
           My Purchases
         </h1>
-        <p className="text-sm text-[#6B6B66] mt-1.5">
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
           Materials you&apos;ve bought from other students.
         </p>
       </div>
@@ -198,48 +198,53 @@ export default function PurchasesPage() {
             return (
               <div
                 key={order.id}
-                className="bg-white dark:bg-[#1e2028] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl p-5 flex flex-col gap-4"
+                className="bg-white dark:bg-[#18181C] border border-[#E5E5E0] dark:border-[#26282E] rounded-2xl p-4 sm:p-5 flex flex-col gap-3.5 shadow-2xs"
               >
-                {/* Top row: thumbnail + info + price */}
-                <div className="flex gap-4 items-start">
-                  {/* Thumbnail */}
-                  <div className="w-24 h-[68px] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-[#E5E5E0] dark:border-[#26282E]">
-                    {images[0] ? (
-                      <img src={images[0]} alt={product.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#6B6B66]">
-                        <ShoppingBag size={20} />
-                      </div>
-                    )}
-                  </div>
+                {/* Top Row: Thumbnail + Details + Price */}
+                <div className="flex items-start gap-3 sm:gap-4 justify-between">
+                  
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {/* Thumbnail */}
+                    <div className="w-16 h-16 sm:w-20 sm:h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-gray-800 flex-shrink-0 border border-[#E5E5E0] dark:border-[#26282E]">
+                      {images[0] ? (
+                        <img src={images[0]} alt={product.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <ShoppingBag size={20} />
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-[#1A1A18] dark:text-[#F0F0F0] line-clamp-1 font-heading mb-1">
-                      {product.title}
-                    </h3>
-                    <p className="text-xs text-[#6B6B66] mb-2">
-                      Sold by @{sellerUsername} · Purchased {formatDate(order.created_at)}
-                    </p>
-                    <Badge variant={order.status === "completed" ? "approved" : "pending"}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
+                    {/* Details */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1 font-heading">
+                        {product.title}
+                      </h3>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        Sold by @{sellerUsername} • {formatDate(order.created_at)}
+                      </p>
+                      <div>
+                        <Badge variant={order.status === "completed" ? "approved" : "pending"}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Price */}
                   <div className="flex-shrink-0 text-right">
-                    <span className="text-lg font-bold text-brand-indigo font-heading">
+                    <span className="text-xs sm:text-base font-extrabold text-[#2E3192] dark:text-indigo-400 font-heading">
                       {formatPrice(product.price)}
                     </span>
                   </div>
                 </div>
 
-                {/* Actions row */}
-                <div className="flex items-center gap-3 pt-3 border-t border-[#E5E5E0] dark:border-[#26282E]">
+                {/* Actions Row - Clean wrapping on mobile screens */}
+                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E5E5E0] dark:border-[#26282E]">
                   <Link href={`/product/${product.id}`}>
-                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors">
+                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2E3192] bg-[#2E3192]/10 hover:bg-[#2E3192]/20 rounded-xl transition-colors cursor-pointer">
                       <ExternalLink size={13} />
-                      View Listing
+                      <span>View Listing</span>
                     </button>
                   </Link>
 
@@ -249,25 +254,25 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => handleDownload(product.id, product.title)}
                           disabled={downloadingId === product.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
                         >
                           <Download size={13} />
-                          {downloadingId === product.id ? "Downloading..." : "Download"}
+                          <span>{downloadingId === product.id ? "Downloading..." : "Download"}</span>
                         </button>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-500/80">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-200 dark:border-red-900/50">
                           <AlertCircle size={12} />
-                          File unavailable
+                          <span>File unavailable</span>
                         </span>
                       )}
 
                       {!order.buyer_comment && (
                         <button
                           onClick={() => handleWriteReview(order.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-indigo hover:bg-brand-indigo/5 rounded-md transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
                         >
                           <Star size={13} />
-                          Write Review
+                          <span>Write Review</span>
                         </button>
                       )}
                     </>
@@ -275,33 +280,32 @@ export default function PurchasesPage() {
 
                   <button
                     onClick={() => handleReportProblem(product.title)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#6B6B66] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
                   >
                     <AlertCircle size={13} />
-                    Report
+                    <span>Report</span>
                   </button>
 
-                  <div className="ml-auto">
-                    <button
-                      onClick={() => handleDelete(order.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500/70 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 rounded-md transition-colors"
-                    >
-                      <Trash2 size={13} />
-                      Delete
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleDelete(order.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer ml-auto"
+                    title="Delete record"
+                  >
+                    <Trash2 size={13} />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
                 </div>
 
-                {/* Review comment if exists */}
+                {/* Review Comment if submitted */}
                 {order.status === "completed" && order.buyer_comment && (
-                  <div className="text-xs text-[#6B6B66] border-t border-[#E5E5E0] dark:border-[#26282E] pt-3 flex flex-col gap-1">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 border-t border-[#E5E5E0] dark:border-[#26282E] pt-3 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[#1A1A18] dark:text-[#F0F0F0]">Your Feedback</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">Your Review</span>
                       <span className="text-amber-500 text-sm">
                         {"★".repeat(order.buyer_rating || 0) + "☆".repeat(5 - (order.buyer_rating || 0))}
                       </span>
                     </div>
-                    <p className="italic bg-[#F5F5F0] dark:bg-[#1a1c22] p-3 rounded-lg border border-[#E5E5E0] dark:border-[#26282E] leading-relaxed text-[#4a4a5a] dark:text-gray-300">
+                    <p className="italic bg-gray-50 dark:bg-gray-800/60 p-3 rounded-xl border border-gray-200 dark:border-gray-700 leading-relaxed text-gray-700 dark:text-gray-300">
                       &ldquo;{order.buyer_comment}&rdquo;
                     </p>
                   </div>
