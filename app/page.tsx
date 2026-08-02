@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Search, BookOpen } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { ProductCardSkeleton } from "@/components/marketplace/ProductCardSkeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { FilterState, Product } from "@/lib/types";
@@ -48,9 +49,16 @@ function normalise(p: any): Product {
 }
 
 function MarketplaceFeedInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { darkMode, toggleDark } = useTheme();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && user && user.role === "admin") {
+      router.replace("/admin/overview");
+    }
+  }, [user, isLoading, router]);
 
   const [filters, setFilters] = useState<FilterState>({
     category: (searchParams.get("category") as FilterState["category"]) || "",
@@ -126,6 +134,14 @@ function MarketplaceFeedInner() {
 
   const visible = sorted.slice(0, page * PAGE_SIZE);
   const hasMore = visible.length < sorted.length;
+
+  if (isLoading || (user && user.role === "admin")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f5f7] dark:bg-gray-900">
+        <Spinner size="lg" className="text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
