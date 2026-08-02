@@ -21,7 +21,8 @@ import {
   ChevronRight,
   ShoppingBag,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  CreditCard
 } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,7 +31,7 @@ import { API_BASE_URL } from "@/lib/api";
 
 interface AdminMessageThread {
   id: string;
-  type: "verification" | "listing_review" | "report" | "direct_support";
+  type: "verification" | "listing_review" | "sale" | "report" | "direct_support";
   user: {
     id: string;
     name: string;
@@ -48,6 +49,7 @@ interface AdminMessageThread {
     id_card_url?: string;
     product_id?: string;
     product_title?: string;
+    price?: number;
     reason?: string;
     notes?: string[];
   };
@@ -59,7 +61,7 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "verification" | "listing" | "support">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "verification" | "listing" | "sales" | "support">("all");
   
   // Quick action states
   const [replyText, setReplyText] = useState("");
@@ -82,14 +84,17 @@ export default function AdminMessagesPage() {
     else setRefreshing(true);
 
     try {
-      const [verifRes, prodRes, activityRes, usersRes] = await Promise.all([
+      const [verifRes, prodRes, txRes, activityRes, usersRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/verifications`, {
           headers: { Authorization: `Bearer ${token()}` }
         }),
         fetch(`${API_BASE_URL}/admin/products`, {
           headers: { Authorization: `Bearer ${token()}` }
         }),
-        fetch(`${API_BASE_URL}/admin/activity/recent?filter=all&limit=30`, {
+        fetch(`${API_BASE_URL}/admin/transactions`, {
+          headers: { Authorization: `Bearer ${token()}` }
+        }),
+        fetch(`${API_BASE_URL}/admin/activity/recent?filter=all&limit=50`, {
           headers: { Authorization: `Bearer ${token()}` }
         }),
         fetch(`${API_BASE_URL}/admin/users?limit=50`, {
@@ -99,7 +104,7 @@ export default function AdminMessagesPage() {
 
       let formattedThreads: AdminMessageThread[] = [];
 
-      // 1. Process Verification Requests as Threads (only for users who actually submitted a verification request)
+      // 1. Process Verification Requests as Threads (only active requests)
       if (verifRes.ok) {
         const verifications = await verifRes.json();
         const activeRequests = verifications.filter((item: any) => 
@@ -159,43 +164,98 @@ export default function AdminMessagesPage() {
             details: {
               product_id: prod.id,
               product_title: prod.title,
+              price: prod.price,
               notes: [`Listing submitted for review. Price: ETB ${prod.price}.`]
             }
           });
         });
       }
 
-      // 3. Process Activity Feed Items / Reports
+      // 3. Process Sales & Transactions
+      if (txRes.ok) {
+        const txData = await txRes.json();
+        const txList = Array.isArray(txData) ? txData : txData.data || [];
+        txList.forEach((tx: any) => {
+          const buyerName = tx.buyer?.profile?.name || tx.buyer?.profile?.username || "Buyer";
+          const buyerUsername = tx.buyer?.profile?.username || "buyer";
+          const sellerUsername = tx.product?.seller?.profile?.username || "seller";
+          formattedThreads.push({
+            id: `tx-${tx.id}`,
+            type: "sale",
+            user: {
+              id: tx.buyer?.id || "buyer-id",
+              name: buyerName,
+              username: buyerUsername,
+              avatar: tx.buyer?.profile?.avatar_url
+            },
+            subject: `Completed Sale: "${tx.product?.title || 'Marketplace Product'}"`,
+            snippet: `@${buyerUsername} purchased "${tx.product?.title || 'Item'}" from @${sellerUsername} for ETB ${tx.product?.price ?? 0}.`,
+            timestamp: tx.created_at || new Date().toISOString(),
+            unread: false,
+            status: "resolved",
+            details: {
+              product_id: tx.product_id || tx.product?.id,
+              product_title: tx.product?.title,
+              price: tx.product?.price,
+              notes: [`Completed purchase record. Buyer: @${buyerUsername}, Seller: @${sellerUsername}.`]
+            }
+          });
+        });
+      }
+
+      // 4. Process Activity Feed Items (Listings, Reports, Transactions)
       if (activityRes.ok) {
         const activities = await activityRes.json();
         activities.forEach((act: any) => {
-          if (act.type === "report") {
-            formattedThreads.push({
-              id: `act-${act.id}`,
-              type: "report",
-              user: {
-                id: act.user_id || "system",
-                name: act.user_name || "Platform Reporter",
-                username: act.user_username || "anonymous",
-                role: "user"
-              },
-              subject: `Content Report: ${act.title || "Policy Violation Inquiry"}`,
-              snippet: act.description || "A user reported a listing or account violating marketplace guidelines.",
-              timestamp: act.timestamp || new Date().toISOString(),
-              unread: true,
-              status: "action_required",
-              details: {
-                notes: [act.description || "Report logged in activity system."]
-              }
-            });
+          const exists = formattedThreads.some(t => t.id.includes(act.id) || t.id.includes(act.relatedId));
+          if (!exists) {
+            if (act.type === "report") {
+              formattedThreads.push({
+                id: `act-${act.id}`,
+                type: "report",
+                user: {
+                  id: act.user_id || "system",
+                  name: act.user_name || "Platform User",
+                  username: act.user_username || "anonymous",
+                  role: "user"
+                },
+                subject: `Content Report: Policy Violation Inquiry`,
+                snippet: act.description || "A user reported a listing or account violating marketplace guidelines.",
+                timestamp: act.timestamp || new Date().toISOString(),
+                unread: true,
+                status: "action_required",
+                details: {
+                  notes: [act.description || "Report logged in activity system."]
+                }
+              });
+            } else if (act.type === "listing") {
+              formattedThreads.push({
+                id: `act-list-${act.id}`,
+                type: "listing_review",
+                user: {
+                  id: act.user_id || "seller",
+                  name: act.user_name || "Seller",
+                  username: act.user_username || "seller",
+                  role: "user"
+                },
+                subject: `New Listing Event`,
+                snippet: act.description,
+                timestamp: act.timestamp || new Date().toISOString(),
+                unread: false,
+                status: "resolved",
+                details: {
+                  notes: [act.description]
+                }
+              });
+            }
           }
         });
       }
 
-      // 4. Save fetched users for direct messaging
+      // 5. Save fetched users for direct messaging
       if (usersRes.ok) {
         const usersData = await usersRes.json();
-        setUsersList(Array.isArray(usersData) ? usersData : usersData.items || []);
+        setUsersList(Array.isArray(usersData) ? usersData : usersData.data || usersData.items || []);
       }
 
       // Sort descending by timestamp
@@ -222,6 +282,7 @@ export default function AdminMessagesPage() {
   const filteredThreads = threads.filter(t => {
     if (activeTab === "verification" && t.type !== "verification") return false;
     if (activeTab === "listing" && t.type !== "listing_review") return false;
+    if (activeTab === "sales" && t.type !== "sale") return false;
     if (activeTab === "support" && (t.type !== "report" && t.type !== "direct_support")) return false;
 
     if (searchQuery.trim()) {
@@ -376,7 +437,9 @@ export default function AdminMessagesPage() {
       case "verification":
         return <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><ShieldCheck size={11} /> Verification</span>;
       case "listing_review":
-        return <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><ShoppingBag size={11} /> Listing Review</span>;
+        return <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><ShoppingBag size={11} /> Listing</span>;
+      case "sale":
+        return <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><CreditCard size={11} /> Sale</span>;
       case "report":
         return <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><AlertTriangle size={11} /> Policy Report</span>;
       default:
@@ -396,7 +459,7 @@ export default function AdminMessagesPage() {
             Support & Message Center
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Manage user inquiries, student ID verifications, seller review requests, and official notices.
+            Manage user inquiries, student ID verifications, seller review requests, sales activity, and official notices.
           </p>
         </div>
 
@@ -451,7 +514,8 @@ export default function AdminMessagesPage() {
                   { id: "all", label: "All" },
                   { id: "verification", label: "Verifications" },
                   { id: "listing", label: "Listings" },
-                  { id: "support", label: "Support" },
+                  { id: "sales", label: "Sales" },
+                  { id: "support", label: "Reports & Support" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -719,6 +783,31 @@ export default function AdminMessagesPage() {
                           <XCircle size={15} />
                           <span>Request Revision / Reject</span>
                         </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* Sale / Transaction Detail Card */}
+                  {selectedThread.type === "sale" && selectedThread.details?.product_id && (
+                    <div className="border border-purple-100 bg-purple-50/40 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold text-purple-900">
+                          <CreditCard size={16} className="text-purple-600" />
+                          <span>Transaction Item: {selectedThread.details.product_title}</span>
+                        </div>
+                        {selectedThread.details.price !== undefined && (
+                          <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-lg">
+                            ETB {selectedThread.details.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <Link
+                          href={`/product/${selectedThread.details.product_id}`}
+                          className="text-xs font-semibold text-purple-600 hover:underline flex items-center gap-1"
+                        >
+                          View Product Details <ExternalLink size={12} />
+                        </Link>
                       </div>
                     </div>
                   )}
