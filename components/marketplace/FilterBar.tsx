@@ -60,7 +60,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
             setSortOpen(false);
           }}
           className={cn(
-            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#16181D] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[140px]",
+            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#18181C] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[140px]",
             catOpen
               ? "border-[#2E3192] ring-2 ring-[#2E3192]/20 shadow-xs"
               : filters.category
@@ -87,7 +87,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -4 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-[#16181D] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 max-h-60 overflow-y-auto custom-scrollbar"
+              className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-[#18181C] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 max-h-60 overflow-y-auto custom-scrollbar"
             >
               <button
                 onClick={() => {
@@ -137,7 +137,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
             setSortOpen(false);
           }}
           className={cn(
-            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#16181D] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[130px]",
+            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#18181C] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[130px]",
             typeOpen
               ? "border-[#2E3192] ring-2 ring-[#2E3192]/20 shadow-xs"
               : filters.productType
@@ -166,7 +166,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -4 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute left-0 top-full mt-1.5 w-44 bg-white dark:bg-[#16181D] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 overflow-hidden"
+              className="absolute left-0 top-full mt-1.5 w-44 bg-white dark:bg-[#18181C] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 overflow-hidden"
             >
               <button
                 onClick={() => {
@@ -216,7 +216,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
             setTypeOpen(false);
           }}
           className={cn(
-            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#16181D] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[140px]",
+            "flex items-center justify-between gap-2.5 px-3.5 py-2 text-xs font-semibold rounded-xl border bg-white dark:bg-[#18181C] text-gray-800 dark:text-gray-200 transition-all duration-200 cursor-pointer min-w-[140px]",
             sortOpen
               ? "border-[#2E3192] ring-2 ring-[#2E3192]/20 shadow-xs"
               : "border-[#E5E5E0] dark:border-[#26282E] hover:border-[#2E3192]/40"
@@ -239,7 +239,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -4 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute left-0 top-full mt-1.5 w-44 bg-white dark:bg-[#16181D] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 overflow-hidden"
+              className="absolute left-0 top-full mt-1.5 w-44 bg-white dark:bg-[#18181C] border border-[#E5E5E0] dark:border-[#26282E] rounded-xl shadow-lg py-1.5 z-30 overflow-hidden"
             >
               {SORT_OPTIONS.map((s) => {
                 const selected = filters.sort === s.value;

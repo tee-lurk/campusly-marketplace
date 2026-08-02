@@ -218,7 +218,7 @@ export default function EarningsPage() {
                 return (
                   <div
                     key={sale.id}
-                    className="flex justify-between items-center p-4 rounded-lg border border-[#E5E5E0] dark:border-[#26282E] bg-[#FAFAF8] dark:bg-[#16181D] text-sm"
+                    className="flex justify-between items-center p-4 rounded-lg border border-[#E5E5E0] dark:border-[#26282E] bg-[#FDFBF5] dark:bg-[#18181C] text-sm"
                   >
                     <div>
                       <p className="font-semibold text-text-primary dark:text-gray-200">

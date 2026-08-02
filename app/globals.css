@@ -8,8 +8,8 @@
   --color-brand-indigo-dark: #1e2272;
   --color-brand-indigo-light: #4e51b2;
   --color-brand-amber: #f5a623;
-  --color-canvas: #fafaf8;
-  --color-canvas-dark: #16181d;
+  --color-canvas: #fdfbf5;
+  --color-canvas-dark: #18181c;
   --color-card: #ffffff;
   --color-card-dark: #1e2028;
   --color-border-soft: #e8e8e4;
@@ -67,7 +67,7 @@ html {
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background-color: #fafaf8;
+  background-color: #fdfbf5;
   color: #1a1a2e;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -75,7 +75,7 @@ body {
 }
 
 .dark body {
-  background-color: #16181d;
+  background-color: #18181c;
   color: #e8e8e4;
 }
 

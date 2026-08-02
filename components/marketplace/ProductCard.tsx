@@ -37,9 +37,9 @@ export function ProductCard({ product }: ProductCardProps) {
       <motion.article
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className={`bg-white dark:bg-[#16181D] border rounded-2xl overflow-hidden transition-colors duration-200 h-full flex flex-col relative ${
+        className={`bg-white dark:bg-[#18181C] border rounded-2xl overflow-hidden transition-colors duration-200 h-full flex flex-col relative ${
           isMine
-            ? "border-[#2E3192]/60 ring-2 ring-[#2E3192]/20 dark:ring-[#2E3192]/30 bg-gradient-to-b from-[#2E3192]/[0.03] via-white to-white dark:via-[#16181D] dark:to-[#16181D]"
+            ? "border-[#2E3192]/60 ring-2 ring-[#2E3192]/20 dark:ring-[#2E3192]/30 bg-gradient-to-b from-[#2E3192]/[0.03] via-white to-white dark:via-[#18181C] dark:to-[#18181C]"
             : "border-[#E5E5E0] dark:border-[#26282E] hover:border-[#2E3192]/40 shadow-xs hover:shadow-md"
         }`}
       >

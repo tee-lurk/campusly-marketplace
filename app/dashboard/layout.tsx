@@ -351,7 +351,7 @@ function DashboardLayoutInner({
         </aside>
 
         {/* ── Main content area ───────────────────────────────────── */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 bg-[#FAFAF8] dark:bg-[#16181D] overflow-y-auto custom-scrollbar">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 bg-[#FDFBF5] dark:bg-[#18181C] overflow-y-auto custom-scrollbar">
           {children}
         </main>
       </div>

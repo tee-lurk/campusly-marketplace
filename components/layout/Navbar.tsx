@@ -139,8 +139,8 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
       className={cn(
         "sticky top-0 z-40 transition-all duration-300 border-b",
         isScrolled
-          ? "bg-white/90 dark:bg-[#16181D]/90 backdrop-blur-md border-[#E5E5E0] dark:border-[#26282E] shadow-2xs"
-          : "bg-white dark:bg-[#16181D] border-transparent"
+          ? "bg-[#FDFBF5]/90 dark:bg-[#18181C]/90 backdrop-blur-md border-[#E5E5E0] dark:border-[#26282E] shadow-2xs"
+          : "bg-[#FDFBF5] dark:bg-[#18181C] border-transparent"
       )}
     >
       <div className={isDashboard ? "w-full px-4 sm:px-6 lg:px-8" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
@@ -198,7 +198,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                     if (isSearchPage) onSearch?.(e.target.value);
                   }}
                   placeholder="Search modules, notes, past exams, video lectures…"
-                  className="w-full pl-10 pr-4 py-2 text-sm rounded-full border border-gray-200 dark:border-[#26282E] bg-gray-50/70 dark:bg-card-dark text-text-primary dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:bg-white dark:focus:bg-[#16181D] transition-all"
+                  className="w-full pl-10 pr-4 py-2 text-sm rounded-full border border-gray-200 dark:border-[#26282E] bg-gray-50/70 dark:bg-card-dark text-text-primary dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:bg-white dark:focus:bg-[#18181C] transition-all"
                 />
               </motion.div>
             </form>
@@ -247,7 +247,7 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                   >
                     <Bell size={18} />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white dark:border-[#16181D]" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white dark:border-[#18181C]" />
                     )}
                   </motion.button>
 

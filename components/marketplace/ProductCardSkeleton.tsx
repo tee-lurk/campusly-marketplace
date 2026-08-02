@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-[#16181D] border border-[#E5E5E0] dark:border-[#26282E] rounded-2xl overflow-hidden shadow-2xs h-full flex flex-col">
+    <div className="bg-white dark:bg-[#18181C] border border-[#E5E5E0] dark:border-[#26282E] rounded-2xl overflow-hidden shadow-2xs h-full flex flex-col">
       {/* 16:9 Thumbnail Skeleton */}
       <div className="relative aspect-[16/9] bg-gray-200 dark:bg-gray-800 overflow-hidden">
         <motion.div

@@ -137,14 +137,14 @@ function MarketplaceFeedInner() {
 
   if (isLoading || (user && user.role === "admin")) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] dark:bg-[#16181D]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF5] dark:bg-[#18181C]">
         <Spinner size="lg" className="text-[#2E3192]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#16181D] text-gray-900 dark:text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FDFBF5] dark:bg-[#18181C] text-gray-900 dark:text-gray-100 flex flex-col font-sans">
       <Navbar
         onSearch={handleSearch}
         searchValue={searchInput}
@@ -259,7 +259,7 @@ function MarketplaceFeedInner() {
 export default function MarketplaceFeed() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] dark:bg-[#16181D]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF5] dark:bg-[#18181C]">
         <Spinner size="lg" className="text-[#2E3192]" />
       </div>
     }>
