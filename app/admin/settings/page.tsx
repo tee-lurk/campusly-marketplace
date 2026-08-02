@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Settings, 
   FolderTree, 
@@ -22,7 +22,11 @@ import {
   Layers, 
   X,
   Sparkles,
-  Server
+  ChevronDown,
+  ChevronRight,
+  Upload,
+  Zap,
+  Info
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -30,53 +34,50 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/lib/api";
 
-interface Category {
-  id: string;
-  name: string;
-  _count?: { products: number };
-  productTypes?: { id: string; name: string; _count?: { products: number } }[];
-}
-
 interface ProductType {
   id: string;
   name: string;
   category_id: string;
-  category?: { id: string; name: string };
   _count?: { products: number };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  _count?: { products: number };
+  productTypes?: ProductType[];
 }
 
 export default function AdminSettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"taxonomy" | "types" | "controls" | "account" | "notifications">("taxonomy");
+  const [activeTab, setActiveTab] = useState<"categories" | "controls" | "account" | "notifications">("categories");
 
-  // State: Categories
+  // State: Categories & Sub-Categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [catLoading, setCatLoading] = useState(true);
   const [newCatName, setNewCatName] = useState("");
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
+  const [expandedCatIds, setExpandedCatIds] = useState<string[]>([]);
 
-  // State: Product Types
-  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
-  const [ptLoading, setPtLoading] = useState(true);
-  const [newPtName, setNewPtName] = useState("");
-  const [newPtCatId, setNewPtCatId] = useState("");
-  const [editingPtId, setEditingPtId] = useState<string | null>(null);
-  const [editingPtName, setEditingPtName] = useState("");
-  const [filterPtCatId, setFilterPtCatId] = useState<string>("all");
+  // Sub-Category State
+  const [newSubCatName, setNewSubCatName] = useState<Record<string, string>>({});
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editingSubName, setEditingSubName] = useState("");
 
   // State: Platform Controls
   const [platformConfig, setPlatformConfig] = useState({
-    autoApproveVerified: false,
-    requireStudentIdToSell: true,
+    autoApproveAllListings: true,
     slaHours: "24",
     maintenanceMode: false,
-    maxListingsPerUser: "15",
   });
 
-  // State: Admin Account Update
+  // State: Admin Account & Avatar Update
   const [adminName, setAdminName] = useState(user?.name || "");
-  const [adminEmail, setAdminEmail] = useState(user?.email || "");
+  const [adminAvatarUrl, setAdminAvatarUrl] = useState(user?.avatar || "");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -93,14 +94,29 @@ export default function AdminSettingsPage() {
     const savedConfig = localStorage.getItem("campusly_platform_config");
     if (savedConfig) {
       try {
-        setPlatformConfig(JSON.parse(savedConfig));
+        const parsed = JSON.parse(savedConfig);
+        setPlatformConfig({
+          autoApproveAllListings: parsed.autoApproveAllListings ?? true,
+          slaHours: parsed.slaHours ?? "24",
+          maintenanceMode: parsed.maintenanceMode ?? false,
+        });
       } catch (e) {
         console.error("Error reading saved config", e);
       }
+    } else {
+      // Default autoApproveAllListings to true
+      localStorage.setItem("campusly_platform_config", JSON.stringify(platformConfig));
     }
   }, []);
 
-  // Fetch Categories from DB
+  useEffect(() => {
+    if (user) {
+      setAdminName(user.name || "");
+      setAdminAvatarUrl(user.avatar || "");
+    }
+  }, [user]);
+
+  // Fetch Categories and their Product Types from DB
   const fetchCategories = async () => {
     setCatLoading(true);
     try {
@@ -108,10 +124,11 @@ export default function AdminSettingsPage() {
         headers: { Authorization: `Bearer ${token()}` },
       });
       if (res.ok) {
-        const data = await res.json();
+        const data: Category[] = await res.json();
         setCategories(data);
-        if (data.length > 0 && !newPtCatId) {
-          setNewPtCatId(data[0].id);
+        // Expand first category by default if none expanded
+        if (data.length > 0 && expandedCatIds.length === 0) {
+          setExpandedCatIds([data[0].id]);
         }
       }
     } catch (e) {
@@ -121,30 +138,17 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Fetch Product Types from DB
-  const fetchProductTypes = async () => {
-    setPtLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/admin/product-types`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProductTypes(data);
-      }
-    } catch (e) {
-      console.error("Failed to fetch product types", e);
-    } finally {
-      setPtLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchCategories();
-    fetchProductTypes();
   }, []);
 
-  // Category Actions (Create, Update, Delete)
+  const toggleCategoryExpand = (catId: string) => {
+    setExpandedCatIds((prev) =>
+      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
+    );
+  };
+
+  // Main Category Actions (Create, Update, Delete)
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
@@ -165,6 +169,7 @@ export default function AdminSettingsPage() {
       if (res.ok) {
         setActionSuccess(`Category "${newCatName}" created successfully!`);
         setNewCatName("");
+        if (data.id) setExpandedCatIds((prev) => [...prev, data.id]);
         fetchCategories();
       } else {
         setActionError(data.message || "Failed to create category.");
@@ -193,7 +198,7 @@ export default function AdminSettingsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess("Category updated successfully!");
+        setActionSuccess("Category name updated!");
         setEditingCatId(null);
         setEditingCatName("");
         fetchCategories();
@@ -208,7 +213,7 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to delete category "${name}" and all its sub-categories?`)) return;
     setSubmitting(true);
     setActionSuccess("");
     setActionError("");
@@ -222,7 +227,6 @@ export default function AdminSettingsPage() {
       if (res.ok) {
         setActionSuccess(`Category "${name}" deleted!`);
         fetchCategories();
-        fetchProductTypes();
       } else {
         setActionError(data.message || "Cannot delete category.");
       }
@@ -233,10 +237,11 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Product Type Actions (Create, Update, Delete)
-  const handleCreateProductType = async (e: React.FormEvent) => {
+  // Inline Sub-Category Actions (Create, Update, Delete under a Category)
+  const handleAddSubCategory = async (catId: string, e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPtName.trim() || !newPtCatId) return;
+    const name = newSubCatName[catId]?.trim();
+    if (!name) return;
     setSubmitting(true);
     setActionSuccess("");
     setActionError("");
@@ -248,16 +253,15 @@ export default function AdminSettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token()}`,
         },
-        body: JSON.stringify({ name: newPtName.trim(), category_id: newPtCatId }),
+        body: JSON.stringify({ name, category_id: catId }),
       });
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess(`Product type "${newPtName}" added!`);
-        setNewPtName("");
-        fetchProductTypes();
+        setActionSuccess(`Sub-category "${name}" added!`);
+        setNewSubCatName((prev) => ({ ...prev, [catId]: "" }));
         fetchCategories();
       } else {
-        setActionError(data.message || "Failed to create product type.");
+        setActionError(data.message || "Failed to add sub-category.");
       }
     } catch (err) {
       setActionError("Failed to connect to server.");
@@ -266,57 +270,57 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleUpdateProductType = async (id: string) => {
-    if (!editingPtName.trim()) return;
+  const handleUpdateSubCategory = async (subId: string) => {
+    if (!editingSubName.trim()) return;
     setSubmitting(true);
     setActionSuccess("");
     setActionError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/product-types/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/product-types/${subId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token()}`,
         },
-        body: JSON.stringify({ name: editingPtName.trim() }),
+        body: JSON.stringify({ name: editingSubName.trim() }),
       });
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess("Product type updated successfully!");
-        setEditingPtId(null);
-        setEditingPtName("");
-        fetchProductTypes();
+        setActionSuccess("Sub-category updated!");
+        setEditingSubId(null);
+        setEditingSubName("");
+        fetchCategories();
       } else {
-        setActionError(data.message || "Failed to update product type.");
+        setActionError(data.message || "Failed to update sub-category.");
       }
     } catch (err) {
-      setActionError("Failed to update product type.");
+      setActionError("Failed to update sub-category.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteProductType = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete product type "${name}"?`)) return;
+  const handleDeleteSubCategory = async (subId: string, name: string) => {
+    if (!confirm(`Are you sure you want to remove sub-category "${name}"?`)) return;
     setSubmitting(true);
     setActionSuccess("");
     setActionError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/product-types/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/product-types/${subId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token()}` },
       });
       const data = await res.json();
       if (res.ok) {
-        setActionSuccess(`Product type "${name}" deleted!`);
-        fetchProductTypes();
+        setActionSuccess(`Sub-category "${name}" removed!`);
+        fetchCategories();
       } else {
-        setActionError(data.message || "Cannot delete product type.");
+        setActionError(data.message || "Cannot delete sub-category.");
       }
     } catch (err) {
-      setActionError("Failed to delete product type.");
+      setActionError("Failed to delete sub-category.");
     } finally {
       setSubmitting(false);
     }
@@ -326,8 +330,66 @@ export default function AdminSettingsPage() {
   const handleSavePlatformConfig = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem("campusly_platform_config", JSON.stringify(platformConfig));
-    setActionSuccess("Platform moderation policies and system controls updated successfully!");
+    setActionSuccess("Platform moderation policy updated! User listing auto-approval is now " + (platformConfig.autoApproveAllListings ? "ACTIVE" : "INACTIVE") + ".");
     setTimeout(() => setActionSuccess(""), 4000);
+  };
+
+  // Admin Profile & Avatar Update
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true);
+    setActionError("");
+    setActionSuccess("");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/uploads/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token()}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setAdminAvatarUrl(data.url);
+        // Save to profile
+        await updateAdminProfile(adminName, data.url);
+      } else {
+        setActionError(data.message || "Failed to upload avatar image.");
+      }
+    } catch (e) {
+      setActionError("Error uploading avatar image.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const updateAdminProfile = async (name: string, avatarUrl: string) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        body: JSON.stringify({ name, avatar_url: avatarUrl }),
+      });
+      if (res.ok) {
+        setActionSuccess("Admin profile & PFP updated successfully!");
+      } else {
+        const err = await res.json();
+        setActionError(err.message || "Failed to update profile.");
+      }
+    } catch (e) {
+      setActionError("Error connecting to server.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveAdminProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateAdminProfile(adminName, adminAvatarUrl);
   };
 
   // Password Update
@@ -342,13 +404,13 @@ export default function AdminSettingsPage() {
     setActionError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/change-password`, {
-        method: "PATCH",
+      const res = await fetch(`${API_BASE_URL}/users/password`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token()}`,
         },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ old_password: currentPassword, new_password: newPassword }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -366,14 +428,9 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const filteredProductTypes = productTypes.filter((pt) => {
-    if (filterPtCatId === "all") return true;
-    return pt.category_id === filterPtCatId;
-  });
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto py-2">
-      {/* Page Banner Header */}
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
@@ -384,18 +441,13 @@ export default function AdminSettingsPage() {
               System & Platform Settings
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">
-              Manage marketplace categories, product sub-types, listing moderation policies, and administrator account controls.
+              Manage marketplace categories, sub-categories, listing moderation policies, and administrator credentials.
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 bg-indigo-50/70 border border-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl text-xs font-semibold">
-          <Server size={14} className="text-indigo-600 animate-pulse" />
-          <span>Connected to Live Database</span>
-        </div>
       </div>
 
-      {/* Action Banners */}
+      {/* Action Feedback Banners */}
       {actionSuccess && (
         <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl p-4 text-xs font-semibold flex items-center justify-between animate-fade-in shadow-xs">
           <div className="flex items-center gap-2">
@@ -426,11 +478,10 @@ export default function AdminSettingsPage() {
         {/* Navigation Sidebar (3 cols) */}
         <div className="lg:col-span-3 bg-white border border-gray-100 rounded-2xl p-3 shadow-xs space-y-1 h-fit">
           {[
-            { id: "taxonomy", label: "Categories", icon: FolderTree, desc: "Marketplace categories" },
-            { id: "types", label: "Product Types", icon: Tag, desc: "Sub-category mappings" },
-            { id: "controls", label: "Moderation & Rules", icon: Sliders, desc: "System policies & SLA" },
-            { id: "account", label: "Admin Security", icon: Shield, desc: "Password & Credentials" },
-            { id: "notifications", label: "System Alerts", icon: Bell, desc: "Admin email notifications" },
+            { id: "categories", label: "Categories & Sub-Types", icon: FolderTree, desc: "Manage taxonomy & sub-categories" },
+            { id: "controls", label: "Moderation Rules", icon: Sliders, desc: "Auto-approval & SLA rules" },
+            { id: "account", label: "Admin Security & PFP", icon: Shield, desc: "Avatar, Profile & Password" },
+            { id: "notifications", label: "System Alerts", icon: Bell, desc: "Admin notification triggers" },
           ].map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -464,17 +515,17 @@ export default function AdminSettingsPage() {
         {/* Settings Tab Content Panel (9 cols) */}
         <div className="lg:col-span-9 bg-white border border-gray-100 rounded-2xl p-6 shadow-xs min-h-[500px]">
           
-          {/* TAB 1: CATEGORIES TAXONOMY */}
-          {activeTab === "taxonomy" && (
+          {/* TAB 1: CATEGORIES & SUB-CATEGORIES MERGED TREE */}
+          {activeTab === "categories" && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <FolderTree size={20} className="text-indigo-600" />
-                    Marketplace Categories
+                    Marketplace Categories & Sub-Categories
                   </h2>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Add, rename, or remove core categories used across seller listings and search filters.
+                    Click a category to view, add, or remove its sub-categories directly inline.
                   </p>
                 </div>
 
@@ -487,11 +538,11 @@ export default function AdminSettingsPage() {
                 </button>
               </div>
 
-              {/* Add New Category Form */}
+              {/* Add New Main Category Form */}
               <form onSubmit={handleCreateCategory} className="bg-gray-50/70 border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Enter new category name (e.g. Textbooks, Electronics)..."
+                  placeholder="Enter new main category (e.g. Textbooks, Tech & Devices)..."
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
                   className="flex-1 w-full px-4 py-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400"
@@ -506,7 +557,7 @@ export default function AdminSettingsPage() {
                 </button>
               </form>
 
-              {/* Category List */}
+              {/* Category Tree List */}
               {catLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Spinner size="lg" className="text-indigo-600" />
@@ -518,223 +569,207 @@ export default function AdminSettingsPage() {
                   description="Create your first category above to structure your marketplace."
                 />
               ) : (
-                <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                  {categories.map((cat) => (
-                    <div key={cat.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                      {editingCatId === cat.id ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <input
-                            type="text"
-                            value={editingCatName}
-                            onChange={(e) => setEditingCatName(e.target.value)}
-                            className="flex-1 px-3 py-1.5 text-xs border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                          />
-                          <button
-                            onClick={() => handleUpdateCategory(cat.id)}
-                            disabled={submitting}
-                            className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                            title="Save"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            onClick={() => setEditingCatId(null)}
-                            className="p-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                            title="Cancel"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
-                            {cat.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-bold text-gray-900">{cat.name}</h3>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {cat._count?.products ?? 0} active listing(s) • {cat.productTypes?.length ?? 0} sub-type(s)
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                <div className="space-y-4">
+                  {categories.map((cat) => {
+                    const isExpanded = expandedCatIds.includes(cat.id);
+                    const subList = cat.productTypes || [];
 
-                      {editingCatId !== cat.id && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingCatId(cat.id);
-                              setEditingCatName(cat.name);
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Rename"
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                    return (
+                      <div
+                        key={cat.id}
+                        className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-2xs transition-all"
+                      >
+                        {/* Category Header Bar */}
+                        <div
+                          className="p-4 bg-gray-50/70 flex items-center justify-between gap-4 cursor-pointer hover:bg-gray-100/60 transition-colors"
+                          onClick={() => toggleCategoryExpand(cat.id)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="p-1 rounded-md text-gray-400 hover:text-gray-700">
+                              {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            </div>
+
+                            {editingCatId === cat.id ? (
+                              <div className="flex items-center gap-2 flex-1" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  value={editingCatName}
+                                  onChange={(e) => setEditingCatName(e.target.value)}
+                                  className="flex-1 px-3 py-1 text-xs border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <button
+                                  onClick={() => handleUpdateCategory(cat.id)}
+                                  disabled={submitting}
+                                  className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                  title="Save"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditingCatId(null)}
+                                  className="p-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                                  title="Cancel"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center border border-indigo-200 flex-shrink-0">
+                                  {cat.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="text-sm font-bold text-gray-900 truncate">{cat.name}</h3>
+                                  <p className="text-[11px] text-gray-500 mt-0.5">
+                                    {cat._count?.products ?? 0} active product(s) • {subList.length} sub-category(ies)
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Category Actions */}
+                          {editingCatId !== cat.id && (
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => {
+                                  setEditingCatId(cat.id);
+                                  setEditingCatName(cat.name);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Rename Category"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete Category"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Expanded Sub-Categories Section */}
+                        {isExpanded && (
+                          <div className="p-5 border-t border-gray-100 bg-white space-y-4 animate-in fade-in">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Tag size={13} className="text-indigo-600" />
+                                Sub-Categories under "{cat.name}"
+                              </h4>
+                              <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                {subList.length} Total
+                              </span>
+                            </div>
+
+                            {/* Add Sub-Category Form under this specific Category */}
+                            <form
+                              onSubmit={(e) => handleAddSubCategory(cat.id, e)}
+                              className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200/80"
+                            >
+                              <input
+                                type="text"
+                                placeholder={`Add new sub-category to ${cat.name}...`}
+                                value={newSubCatName[cat.id] || ""}
+                                onChange={(e) => setNewSubCatName({ ...newSubCatName, [cat.id]: e.target.value })}
+                                className="flex-1 px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                              <button
+                                type="submit"
+                                disabled={submitting || !newSubCatName[cat.id]?.trim()}
+                                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg transition-all flex items-center gap-1 flex-shrink-0"
+                              >
+                                <Plus size={14} />
+                                <span>Add Sub-Category</span>
+                              </button>
+                            </form>
+
+                            {/* Sub-Categories Chips / List */}
+                            {subList.length === 0 ? (
+                              <div className="p-4 text-center bg-gray-50/50 rounded-xl text-xs text-gray-400 italic">
+                                No sub-categories added to "{cat.name}" yet. Add one above.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                {subList.map((sub) => (
+                                  <div
+                                    key={sub.id}
+                                    className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between gap-2 hover:bg-indigo-50/30 transition-colors"
+                                  >
+                                    {editingSubId === sub.id ? (
+                                      <div className="flex items-center gap-1.5 flex-1">
+                                        <input
+                                          type="text"
+                                          value={editingSubName}
+                                          onChange={(e) => setEditingSubName(e.target.value)}
+                                          className="flex-1 px-2 py-1 text-xs bg-white border border-indigo-300 rounded focus:outline-none"
+                                        />
+                                        <button
+                                          onClick={() => handleUpdateSubCategory(sub.id)}
+                                          className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                                        >
+                                          <Check size={13} />
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingSubId(null)}
+                                          className="p-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                                        >
+                                          <X size={13} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <Tag size={13} className="text-indigo-500 flex-shrink-0" />
+                                        <span className="text-xs font-semibold text-gray-800 truncate">
+                                          {sub.name}
+                                        </span>
+                                        {sub._count?.products !== undefined && (
+                                          <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-semibold">
+                                            {sub._count.products}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {editingSubId !== sub.id && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={() => {
+                                            setEditingSubId(sub.id);
+                                            setEditingSubName(sub.name);
+                                          }}
+                                          className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+                                          title="Rename"
+                                        >
+                                          <Edit2 size={13} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteSubCategory(sub.id, sub.name)}
+                                          className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                          title="Remove Sub-Category"
+                                        >
+                                          <Trash2 size={13} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: PRODUCT TYPES (SUB-CATEGORIES) */}
-          {activeTab === "types" && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Tag size={20} className="text-indigo-600" />
-                    Product Sub-Types
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Define detailed sub-categories assigned to parent marketplace categories.
-                  </p>
-                </div>
-
-                {/* Filter by Category */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500">Filter:</span>
-                  <select
-                    value={filterPtCatId}
-                    onChange={(e) => setFilterPtCatId(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="all">All Categories ({productTypes.length})</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Add New Product Type Form */}
-              <form onSubmit={handleCreateProductType} className="bg-gray-50/70 border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row items-center gap-3">
-                <select
-                  value={newPtCatId}
-                  onChange={(e) => setNewPtCatId(e.target.value)}
-                  className="w-full md:w-1/3 px-3 py-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  required
-                >
-                  <option value="">Select Parent Category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="text"
-                  placeholder="Sub-type name (e.g. Laptops, Course Notes)..."
-                  value={newPtName}
-                  onChange={(e) => setNewPtName(e.target.value)}
-                  className="flex-1 w-full px-4 py-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400"
-                />
-
-                <button
-                  type="submit"
-                  disabled={submitting || !newPtName.trim() || !newPtCatId}
-                  className="w-full md:w-auto px-5 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm rounded-xl transition-all flex items-center justify-center gap-1.5 flex-shrink-0"
-                >
-                  {submitting ? <Spinner size="sm" className="text-white" /> : <Plus size={16} />}
-                  <span>Add Sub-Type</span>
-                </button>
-              </form>
-
-              {/* Product Types List */}
-              {ptLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Spinner size="lg" className="text-indigo-600" />
-                </div>
-              ) : filteredProductTypes.length === 0 ? (
-                <EmptyState
-                  icon={<Tag size={40} />}
-                  title="No product sub-types found"
-                  description="Add your first sub-type to group items under a category."
-                />
-              ) : (
-                <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                  {filteredProductTypes.map((pt) => (
-                    <div key={pt.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                      {editingPtId === pt.id ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <input
-                            type="text"
-                            value={editingPtName}
-                            onChange={(e) => setEditingPtName(e.target.value)}
-                            className="flex-1 px-3 py-1.5 text-xs border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                          />
-                          <button
-                            onClick={() => handleUpdateProductType(pt.id)}
-                            disabled={submitting}
-                            className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                            title="Save"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            onClick={() => setEditingPtId(null)}
-                            className="p-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                            title="Cancel"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
-                            <Tag size={14} />
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-bold text-gray-900">{pt.name}</h3>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              Parent Category: <strong className="text-indigo-600">{pt.category?.name || "Category"}</strong> • {pt._count?.products ?? 0} listing(s)
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {editingPtId !== pt.id && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingPtId(pt.id);
-                              setEditingPtName(pt.name);
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Rename"
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProductType(pt.id, pt.name)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: PLATFORM MODERATION & RULES */}
+          {/* TAB 2: MODERATION RULES */}
           {activeTab === "controls" && (
             <form onSubmit={handleSavePlatformConfig} className="space-y-6 animate-fade-in">
               <div className="border-b border-gray-100 pb-4">
@@ -743,48 +778,44 @@ export default function AdminSettingsPage() {
                   Moderation Rules & System Policies
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Configure automated listing approval behavior, seller verification policies, and review SLA limits.
+                  Configure user listing auto-approval behavior and SLA review time limits.
                 </p>
               </div>
 
               <div className="space-y-4">
                 
-                {/* Auto-Approve Verified Sellers */}
-                <div className="p-4 border border-gray-100 bg-gray-50/50 rounded-xl flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-900">Auto-Approve Verified Sellers</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      Automatically publish new listings submitted by blue-tick verified students without requiring manual admin approval.
+                {/* Auto-Approve All User Listings */}
+                <div className="p-5 border border-indigo-100 bg-indigo-50/40 rounded-2xl flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                      <Zap size={16} className="text-indigo-600" />
+                      Auto-Approve All User Listings
+                    </h3>
+                    <p className="text-[11px] text-gray-600 leading-relaxed max-w-xl">
+                      When turned <strong>ON</strong>, every listing created or updated by any user is published <strong>immediately</strong> to the marketplace without waiting for manual admin approval. Users will see an instant publishing banner.
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                     <input
                       type="checkbox"
-                      checked={platformConfig.autoApproveVerified}
-                      onChange={(e) => setPlatformConfig({ ...platformConfig, autoApproveVerified: e.target.checked })}
+                      checked={platformConfig.autoApproveAllListings}
+                      onChange={(e) => setPlatformConfig({ ...platformConfig, autoApproveAllListings: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </label>
                 </div>
 
-                {/* Require Student ID verification for sellers */}
-                <div className="p-4 border border-gray-100 bg-gray-50/50 rounded-xl flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-900">Mandatory Student Verification for Selling</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      Require users to submit a valid Student ID before they are allowed to create marketplace listings.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={platformConfig.requireStudentIdToSell}
-                      onChange={(e) => setPlatformConfig({ ...platformConfig, requireStudentIdToSell: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
+                {/* Status Notice Preview */}
+                <div className="p-4 border border-emerald-200 bg-emerald-50/60 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
+                  <Info size={16} className="text-emerald-600 flex-shrink-0" />
+                  <span>
+                    {platformConfig.autoApproveAllListings ? (
+                      <><strong>Active Notice for Users:</strong> Users creating a listing will see: <em>"⚡ Instant Publishing Active: Your listing will go live immediately!"</em></>
+                    ) : (
+                      <><strong>Manual Moderation Active:</strong> User listings will require admin review before going live.</>
+                    )}
+                  </span>
                 </div>
 
                 {/* SLA Hours Selection */}
@@ -792,7 +823,7 @@ export default function AdminSettingsPage() {
                   <div>
                     <h3 className="text-xs font-bold text-gray-900">Review SLA Target Window</h3>
                     <p className="text-[11px] text-gray-500 mt-0.5">
-                      Target turnaround time for reviewing pending seller submissions on the dashboard stats.
+                      Target turnaround time for reviewing pending seller submissions.
                     </p>
                   </div>
                   <select
@@ -817,7 +848,7 @@ export default function AdminSettingsPage() {
                       Display a maintenance banner across the marketplace and restrict new listing creation during upgrades.
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                     <input
                       type="checkbox"
                       checked={platformConfig.maintenanceMode}
@@ -841,34 +872,94 @@ export default function AdminSettingsPage() {
             </form>
           )}
 
-          {/* TAB 4: ADMIN SECURITY & PASSWORD */}
+          {/* TAB 3: ADMIN SECURITY & PFP */}
           {activeTab === "account" && (
             <div className="space-y-6 animate-fade-in">
               <div className="border-b border-gray-100 pb-4">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Shield size={20} className="text-indigo-600" />
-                  Admin Account & Credentials
+                  Admin Account & Profile Picture (PFP)
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Update your administrator profile details or change your account password.
+                  Change your profile photo, update display details, or change your account password.
                 </p>
               </div>
 
-              {/* Profile Details Preview */}
-              <div className="bg-gray-50/70 border border-gray-100 rounded-xl p-4 flex items-center gap-4">
-                <img
-                  src={user?.avatar || "/default-avatar.svg"}
-                  alt="Admin Avatar"
-                  className="w-14 h-14 rounded-full object-cover border-2 border-indigo-500 shadow-sm"
-                />
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">{user?.name || "Administrator"}</h3>
-                  <p className="text-xs text-gray-500">@{user?.username || "admin"} • {user?.email}</p>
-                  <span className="inline-block bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1">
-                    System Administrator
-                  </span>
+              {/* Admin Profile Picture & Profile Form */}
+              <form onSubmit={handleSaveAdminProfile} className="bg-gray-50/70 border border-gray-100 rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  Admin Profile Picture & Display Name
+                </h3>
+
+                <div className="flex flex-col sm:flex-row items-center gap-5">
+                  {/* Avatar Upload Container */}
+                  <div className="relative group flex-shrink-0">
+                    <img
+                      src={adminAvatarUrl || user?.avatar || "/default-avatar.svg"}
+                      alt="Admin Avatar"
+                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-gray-200"
+                    />
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                        <Spinner size="sm" className="text-white" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => avatarFileRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-1.5 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-transform active:scale-95"
+                      title="Change PFP"
+                    >
+                      <Upload size={14} />
+                    </button>
+                    <input
+                      ref={avatarFileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAvatarUpload(file);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex-1 space-y-3 w-full">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Display Name</label>
+                      <input
+                        type="text"
+                        value={adminName}
+                        onChange={(e) => setAdminName(e.target.value)}
+                        className="w-full px-3.5 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Avatar Image URL (or upload above)</label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={adminAvatarUrl}
+                        onChange={(e) => setAdminAvatarUrl(e.target.value)}
+                        className="w-full px-3.5 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={submitting || uploadingAvatar}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                  >
+                    {submitting ? <Spinner size="sm" className="text-white" /> : <Save size={14} />}
+                    <span>Save Profile & PFP</span>
+                  </button>
+                </div>
+              </form>
 
               {/* Password Change Form */}
               <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
@@ -928,7 +1019,7 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          {/* TAB 5: SYSTEM NOTIFICATION ALERTS */}
+          {/* TAB 4: SYSTEM NOTIFICATION ALERTS */}
           {activeTab === "notifications" && (
             <div className="space-y-6 animate-fade-in">
               <div className="border-b border-gray-100 pb-4">

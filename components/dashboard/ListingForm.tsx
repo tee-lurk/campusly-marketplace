@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, ChevronLeft, Info, AlertCircle } from "lucide-react";
+import { Upload, X, ChevronLeft, Info, AlertCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -77,6 +77,19 @@ export default function ListingForm({ mode, productId, initial }: ListingFormPro
 
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isAutoApproveActive, setIsAutoApproveActive] = useState(true);
+
+  useEffect(() => {
+    const savedConfig = localStorage.getItem("campusly_platform_config");
+    if (savedConfig) {
+      try {
+        const parsed = JSON.parse(savedConfig);
+        if (parsed.autoApproveAllListings !== undefined) {
+          setIsAutoApproveActive(parsed.autoApproveAllListings);
+        }
+      } catch (e) {}
+    }
+  }, []);
 
   // Fetch categories from backend
   useEffect(() => {
@@ -576,13 +589,23 @@ export default function ListingForm({ mode, productId, initial }: ListingFormPro
             </div>
 
             {/* Moderation notice */}
-            <div className="flex items-start gap-3 bg-brand-indigo/5 dark:bg-brand-indigo/10 border border-brand-indigo/20 rounded-xl p-4 text-xs text-text-body dark:text-gray-300 leading-relaxed">
-              <Info size={14} className="text-brand-indigo flex-shrink-0 mt-0.5" />
-              <span>
-                <strong className="text-brand-indigo">New listings enter a pending review state</strong>{" "}
-                and won&apos;t be publicly visible until approved by our team. This usually takes up to 24 hours.
-              </span>
-            </div>
+            {isAutoApproveActive ? (
+              <div className="flex items-start gap-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 rounded-xl p-4 text-xs text-emerald-900 dark:text-emerald-300 leading-relaxed shadow-2xs">
+                <Zap size={16} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5 animate-pulse" />
+                <span>
+                  <strong className="text-emerald-700 dark:text-emerald-400">⚡ Instant Publishing Active:</strong>{" "}
+                  Auto-approval is enabled for all users. Your listing will go live on the marketplace immediately upon submission!
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 bg-brand-indigo/5 dark:bg-brand-indigo/10 border border-brand-indigo/20 rounded-xl p-4 text-xs text-text-body dark:text-gray-300 leading-relaxed">
+                <Info size={14} className="text-brand-indigo flex-shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-brand-indigo">New listings enter a pending review state</strong>{" "}
+                  and won&apos;t be publicly visible until approved by our team. This usually takes up to 24 hours.
+                </span>
+              </div>
+            )}
 
             {/* Upload-in-progress notice */}
             {anyUploading && (
