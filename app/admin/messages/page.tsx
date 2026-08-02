@@ -99,10 +99,16 @@ export default function AdminMessagesPage() {
 
       let formattedThreads: AdminMessageThread[] = [];
 
-      // 1. Process Verification Requests as Threads
+      // 1. Process Verification Requests as Threads (only for users who actually submitted a verification request)
       if (verifRes.ok) {
         const verifications = await verifRes.json();
-        verifications.forEach((item: any) => {
+        const activeRequests = verifications.filter((item: any) => 
+          item.verification_status === "pending" || 
+          (item.verification_status && item.verification_status !== "unverified" && (item.student_id_card_url || item.id_card_url || item.student_id))
+        );
+
+        activeRequests.forEach((item: any) => {
+          const cardUrl = item.student_id_card_url || item.id_card_url;
           formattedThreads.push({
             id: `verif-${item.user_id}`,
             type: "verification",
@@ -110,7 +116,7 @@ export default function AdminMessagesPage() {
               id: item.user_id,
               name: item.name || item.user?.profile?.name || "Student User",
               username: item.username || item.user?.profile?.username || "student",
-              avatar: item.user?.profile?.avatar,
+              avatar: item.avatar_url || item.user?.profile?.avatar,
               role: item.user?.role || "user",
               verification_status: item.verification_status
             },
@@ -120,10 +126,10 @@ export default function AdminMessagesPage() {
             unread: item.verification_status === "pending",
             status: item.verification_status === "pending" ? "pending" : item.verification_status === "verified" ? "resolved" : "rejected",
             details: {
-              id_card_url: item.id_card_url,
+              id_card_url: cardUrl,
               notes: item.verification_status === "pending" 
                 ? ["Submitted verification documents.", "Awaiting admin review."]
-                : [`Verification status updated to: ${item.verification_status}`]
+                : [`Verification status: ${item.verification_status}`]
             }
           });
         });
