@@ -25,6 +25,7 @@ import {
   CreditCard
 } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
+import { FadeArc } from "@/components/loading-ui/fade-arc";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/lib/api";
@@ -950,7 +951,7 @@ export default function AdminMessagesPage() {
                   disabled={sendingMessage}
                   className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
                 >
-                  {sendingMessage ? <Spinner size="sm" className="text-white" /> : <Send size={14} />}
+                  {sendingMessage ? <FadeArc className="w-4 h-4 text-white" /> : <Send size={14} />}
                   <span>Send Notice</span>
                 </button>
               </div>

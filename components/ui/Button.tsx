@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Spinner } from "./Spinner";
+import { FadeArc } from "@/components/loading-ui/fade-arc";
 
 type Variant = "primary" | "ghost" | "destructive" | "secondary";
 type Size = "sm" | "md" | "lg";
@@ -43,7 +43,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 select-none",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 select-none cursor-pointer",
         variantClasses[variant],
         sizeClasses[size],
         fullWidth && "w-full",
@@ -52,7 +52,7 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Spinner size="sm" />}
+      {loading && <FadeArc className="w-4 h-4 flex-shrink-0" />}
       {children}
     </button>
   );

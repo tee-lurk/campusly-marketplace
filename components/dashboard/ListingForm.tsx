@@ -6,6 +6,7 @@ import { Upload, X, ChevronLeft, Info, AlertCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
+import { FadeArc } from "@/components/loading-ui/fade-arc";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
 
@@ -281,6 +282,8 @@ export default function ListingForm({ mode, productId, initial }: ListingFormPro
       if (mode === "new") {
         body.category_id = categoryId;
         body.product_type_id = productTypeId;
+        body.status = isAutoApproveActive ? "approved" : "pending";
+        body.auto_approve = isAutoApproveActive;
       }
 
       const res = await fetch(url, {
@@ -428,7 +431,7 @@ export default function ListingForm({ mode, productId, initial }: ListingFormPro
                       {/* Uploading overlay */}
                       {slot.uploading && (
                         <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center">
-                          <Spinner size="sm" />
+                          <FadeArc className="w-4 h-4 text-white" />
                         </div>
                       )}
 
@@ -610,7 +613,7 @@ export default function ListingForm({ mode, productId, initial }: ListingFormPro
             {/* Upload-in-progress notice */}
             {anyUploading && (
               <div className="flex items-center gap-2 text-xs text-brand-indigo bg-brand-indigo/5 border border-brand-indigo/20 rounded-xl px-4 py-3">
-                <Spinner size="sm" />
+                <FadeArc className="w-4 h-4 text-white" />
                 <span>Uploading images… please wait before submitting.</span>
               </div>
             )}

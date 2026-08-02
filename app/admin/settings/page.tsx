@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
+import { FadeArc } from "@/components/loading-ui/fade-arc";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/lib/api";
@@ -552,7 +553,7 @@ export default function AdminSettingsPage() {
                   disabled={submitting || !newCatName.trim()}
                   className="w-full md:w-auto px-5 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-sm rounded-xl transition-all flex items-center justify-center gap-1.5 flex-shrink-0"
                 >
-                  {submitting ? <Spinner size="sm" className="text-white" /> : <Plus size={16} />}
+                  {submitting ? <FadeArc className="w-4 h-4 text-white" /> : <Plus size={16} />}
                   <span>Add Category</span>
                 </button>
               </form>
@@ -901,7 +902,7 @@ export default function AdminSettingsPage() {
                     />
                     {uploadingAvatar && (
                       <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                        <Spinner size="sm" className="text-white" />
+                        <FadeArc className="w-4 h-4 text-white" />
                       </div>
                     )}
                     <button
@@ -955,7 +956,7 @@ export default function AdminSettingsPage() {
                     disabled={submitting || uploadingAvatar}
                     className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
                   >
-                    {submitting ? <Spinner size="sm" className="text-white" /> : <Save size={14} />}
+                    {submitting ? <FadeArc className="w-4 h-4 text-white" /> : <Save size={14} />}
                     <span>Save Profile & PFP</span>
                   </button>
                 </div>
@@ -1011,7 +1012,7 @@ export default function AdminSettingsPage() {
                     disabled={submitting}
                     className="px-5 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-500/20 rounded-xl transition-all flex items-center gap-2"
                   >
-                    {submitting ? <Spinner size="sm" className="text-white" /> : <Lock size={16} />}
+                    {submitting ? <FadeArc className="w-4 h-4 text-white" /> : <Lock size={16} />}
                     <span>Update Admin Password</span>
                   </button>
                 </div>
