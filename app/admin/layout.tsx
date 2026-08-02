@@ -30,7 +30,20 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/lib/api";
 
-const sidebarGroups = [
+interface SidebarItem {
+  href: string;
+  label: string;
+  icon: any;
+  exact?: boolean;
+  badge?: number;
+}
+
+interface SidebarGroup {
+  label: string;
+  items: SidebarItem[];
+}
+
+const sidebarGroups: SidebarGroup[] = [
   {
     label: "General",
     items: [
