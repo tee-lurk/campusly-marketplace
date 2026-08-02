@@ -61,8 +61,8 @@ const sidebarGroups: SidebarGroup[] = [
   },
 ];
 
-const bottomItems = [
-  { href: "#", label: "Messages", icon: Mail, badge: 2 },
+const bottomItems: SidebarItem[] = [
+  { href: "/admin/messages", label: "Messages", icon: Mail },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -79,12 +79,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifications, setNotifications] = useState<any[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Track viewed notifications to clear the badge
+  // Track viewed notifications & messages to clear badges
   const [lastViewedTime, setLastViewedTime] = useState(0);
+  const [lastViewedMsgTime, setLastViewedMsgTime] = useState(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem("admin_last_viewed_notif_time");
-    if (saved) setLastViewedTime(parseInt(saved, 10));
+    const savedNotif = localStorage.getItem("admin_last_viewed_notif_time");
+    if (savedNotif) setLastViewedTime(parseInt(savedNotif, 10));
+
+    const savedMsg = localStorage.getItem("admin_last_viewed_msg_time");
+    if (savedMsg) setLastViewedMsgTime(parseInt(savedMsg, 10));
   }, []);
 
   useEffect(() => {
@@ -95,10 +99,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         localStorage.setItem("admin_last_viewed_notif_time", latest.toString());
       }
     }
+
+    if (pathname === "/admin/messages") {
+      const now = Date.now();
+      setLastViewedMsgTime(now);
+      localStorage.setItem("admin_last_viewed_msg_time", now.toString());
+    }
   }, [showNotifications, pathname, notifications, lastViewedTime]);
 
   const unreadCount = notifications.filter(n => new Date(n.timestamp).getTime() > lastViewedTime).length;
   const hasUnread = unreadCount > 0;
+
+  const unreadMsgCount = notifications.filter(n => new Date(n.timestamp).getTime() > lastViewedMsgTime).length;
+  const hasUnreadMsg = unreadMsgCount > 0;
 
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
@@ -204,6 +217,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const getHeaderContent = () => {
+    if (pathname === "/admin/messages") {
+      return { title: "Support & Message Center", subtitle: "Manage user inquiries, student ID verifications, and direct notices." };
+    }
     if (pathname === "/admin/users") {
       return { title: "User Management", subtitle: "View, search, and manage all platform users. Ban or unban accounts as needed." };
     }
@@ -334,7 +350,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {bottomItems.map((item) => {
                   const active = item.href !== "#" && pathname.startsWith(item.href);
                   const isNotif = item.label === "Notifications";
-                  const badgeValue = isNotif ? (hasUnread ? unreadCount : undefined) : item.badge;
+                  const isMsg = item.label === "Messages";
+                  const badgeValue = isNotif ? (hasUnread ? unreadCount : undefined) : isMsg ? (hasUnreadMsg ? unreadMsgCount : undefined) : item.badge;
                     
                   return (
                     <Link
@@ -466,7 +483,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {bottomItems.map((item) => {
                     const active = item.href !== "#" && pathname.startsWith(item.href);
                     const isNotif = item.label === "Notifications";
-                    const badgeValue = isNotif ? (hasUnread ? unreadCount : undefined) : item.badge;
+                    const isMsg = item.label === "Messages";
+                    const badgeValue = isNotif ? (hasUnread ? unreadCount : undefined) : isMsg ? (hasUnreadMsg ? unreadMsgCount : undefined) : item.badge;
                       
                     return (
                       <Link
