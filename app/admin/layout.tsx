@@ -36,7 +36,7 @@ const sidebarGroups = [
     items: [
       { href: "/admin/overview", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/admin", label: "Products", icon: ClipboardList, exact: true },
-      { href: "/admin/users", label: "Customers", icon: Users, exact: false, badge: 4 },
+      { href: "/admin/users", label: "Customers", icon: Users, exact: false },
     ],
   },
   {
