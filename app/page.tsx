@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { Search, BookOpen } from "lucide-react";
+import { Search, BookOpen, Shield, RefreshCw, XCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FilterBar } from "@/components/marketplace/FilterBar";
@@ -16,7 +17,6 @@ import { useTheme } from "@/components/layout/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { FilterState, Product } from "@/lib/types";
 import { API_BASE_URL } from "@/lib/api";
-import { Shield } from "lucide-react";
 
 const PAGE_SIZE = 8;
 const API = API_BASE_URL;
@@ -54,6 +54,7 @@ function MarketplaceFeedInner() {
   const { darkMode, toggleDark } = useTheme();
   const { user, isLoading } = useAuth();
 
+  // Redirect admin directly to overview
   useEffect(() => {
     if (!isLoading && user && user.role === "admin") {
       router.replace("/admin/overview");
@@ -102,7 +103,7 @@ function MarketplaceFeedInner() {
     setFilters((f) => ({ ...f, search: query }));
   };
 
-  // Client-side sort with user's own listings prioritized at the top
+  // Client-side sort with user's own listings prioritized at top
   const sorted = useMemo(() => {
     let list = [...products];
 
@@ -120,7 +121,6 @@ function MarketplaceFeedInner() {
         break;
     }
 
-    // Always bring seller's own listings to the front
     if (user?.id) {
       list.sort((a, b) => {
         const isMineA = a.seller?.id === user.id ? 1 : 0;
@@ -137,14 +137,14 @@ function MarketplaceFeedInner() {
 
   if (isLoading || (user && user.role === "admin")) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f4f5f7] dark:bg-gray-900">
-        <Spinner size="lg" className="text-indigo-600" />
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] dark:bg-[#16181D]">
+        <Spinner size="lg" className="text-[#2E3192]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas dark:bg-canvas-dark flex flex-col">
+    <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#16181D] text-gray-900 dark:text-gray-100 flex flex-col font-sans">
       <Navbar
         onSearch={handleSearch}
         searchValue={searchInput}
@@ -153,30 +153,30 @@ function MarketplaceFeedInner() {
       />
 
       <main className="flex-1">
-        {/* Trust Banner */}
-        <div className="bg-brand-indigo/5 dark:bg-brand-indigo/10 border-b border-brand-indigo/10 dark:border-brand-indigo/20 py-2.5 px-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-xs text-brand-indigo">
-            <Shield size={13} />
-            <span>All listings are reviewed by our team before being published.</span>
+        {/* Subtle Academic Trust Banner */}
+        <div className="bg-[#2E3192]/5 border-b border-[#2E3192]/10 py-2.5 px-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-xs font-semibold text-[#2E3192] dark:text-indigo-300">
+            <Shield size={14} className="text-[#2E3192] dark:text-indigo-400" />
+            <span>Peer-to-peer university academic marketplace • All listings reviewed &amp; verified</span>
           </div>
         </div>
 
-        {/* Hero */}
+        {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold font-heading text-text-primary dark:text-gray-100 mb-2">
+          <div className="mb-6 space-y-1.5">
+            <h1 className="text-3xl sm:text-4xl font-extrabold font-heading tracking-tight text-gray-900 dark:text-gray-100">
               Academic Marketplace
             </h1>
-            <p className="text-text-muted text-base">
-              Discover notes, modules, past papers, and video lectures from verified students.
+            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base leading-relaxed">
+              Discover lecture notes, course modules, past exam solutions, and video lectures created by top students.
             </p>
           </div>
 
-          {/* Filter bar */}
+          {/* Interactive Custom Filter Bar */}
           <FilterBar filters={filters} onChange={setFilters} />
         </section>
 
-        {/* Grid */}
+        {/* Product Cards Grid */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -185,35 +185,64 @@ function MarketplaceFeedInner() {
               ))}
             </div>
           ) : sorted.length === 0 ? (
-            <EmptyState
-              icon={<Search size={48} />}
-              title="No listings found"
-              description="Try adjusting your filters or search term. New materials are added regularly."
-              action={{
-                label: "Clear filters",
-                onClick: () =>
-                  setFilters({ category: "", productType: "", sort: "newest", search: "" }),
-              }}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-[#16181D] border border-[#E5E5E0] dark:border-[#26282E] rounded-2xl p-8 shadow-2xs max-w-lg mx-auto my-8"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-gray-800 flex items-center justify-center text-[#2E3192] dark:text-indigo-400 mb-4 shadow-xs">
+                <Search size={32} />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">
+                No matching materials found
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 max-w-sm leading-relaxed">
+                We couldn't find any listings matching your search or category filters. Try clearing your filters.
+              </p>
+              <button
+                onClick={() => setFilters({ category: "", productType: "", sort: "newest", search: "" })}
+                className="px-5 py-2.5 text-xs font-semibold text-white bg-[#2E3192] hover:bg-[#2E3192]/90 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <XCircle size={15} />
+                <span>Clear All Filters</span>
+              </button>
+            </motion.div>
           ) : (
             <>
-              <p className="text-sm text-text-muted mb-4">
-                {sorted.length} listing{sorted.length !== 1 ? "s" : ""} found
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  Showing <strong className="text-gray-900 dark:text-gray-100">{visible.length}</strong> of{" "}
+                  <strong className="text-gray-900 dark:text-gray-100">{sorted.length}</strong> verified materials
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {visible.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
+                <AnimatePresence mode="popLayout">
+                  {visible.map((product, idx) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.25, delay: idx * 0.035, ease: "easeOut" }}
+                      className="h-full"
+                    >
+                      <ProductCard product={product} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
 
               {hasMore && (
-                <div className="flex justify-center mt-10">
+                <div className="flex justify-center mt-12">
                   <Button
                     variant="ghost"
                     onClick={() => setPage((p) => p + 1)}
                     size="lg"
+                    className="border border-[#E5E5E0] dark:border-[#26282E] hover:bg-white dark:hover:bg-[#16181D] font-semibold text-xs text-gray-700 dark:text-gray-300"
                   >
-                    Load more listings
+                    Load More Materials
                   </Button>
                 </div>
               )}
@@ -229,7 +258,11 @@ function MarketplaceFeedInner() {
 
 export default function MarketplaceFeed() {
   return (
-    <Suspense>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] dark:bg-[#16181D]">
+        <Spinner size="lg" className="text-[#2E3192]" />
+      </div>
+    }>
       <MarketplaceFeedInner />
     </Suspense>
   );

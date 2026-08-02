@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   Search,
@@ -24,6 +25,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   onSearch?: (query: string) => void;
@@ -39,12 +41,27 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchVal, setSearchVal] = useState(searchValue);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  // Track scroll position for sticky background blur & subtle border
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -69,8 +86,6 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
           });
           if (res.ok) {
             const data = await res.json();
-            
-            // Only show today's messages (last 24 hours) in the navbar
             const oneDayAgo = new Date();
             oneDayAgo.setDate(oneDayAgo.getDate() - 1);
             const todaysNotifs = data.filter((n: any) => new Date(n.timestamp) >= oneDayAgo);
@@ -120,98 +135,135 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
   const isDashboard = pathname.startsWith("/dashboard");
 
   return (
-    <header className="sticky top-0 z-40 bg-card/95 dark:bg-card-dark/95 backdrop-blur-sm border-b border-border-soft dark:border-border-dark">
+    <header
+      className={cn(
+        "sticky top-0 z-40 transition-all duration-300 border-b",
+        isScrolled
+          ? "bg-white/90 dark:bg-[#16181D]/90 backdrop-blur-md border-[#E5E5E0] dark:border-[#26282E] shadow-2xs"
+          : "bg-white dark:bg-[#16181D] border-transparent"
+      )}
+    >
       <div className={isDashboard ? "w-full px-4 sm:px-6 lg:px-8" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
         <div className="flex items-center gap-4 h-16">
-          {/* Logo & Hamburger side-by-side */}
+          
+          {/* Logo & Hamburger */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {onMobileMenuToggle && (
-              <button
+              <motion.button
+                whileTap={{ scale: 0.95 }}
                 onClick={onMobileMenuToggle}
-                className="lg:hidden p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none active:scale-95"
+                className="lg:hidden p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none"
                 aria-label="Open navigation menu"
               >
-                <Menu size={22} className="text-brand-indigo" />
-              </button>
+                <Menu size={22} className="text-[#2E3192]" />
+              </motion.button>
             )}
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <img src="/logo.png" alt="Campusly Logo" className="w-8 h-8 rounded-lg object-contain" />
-              <span className="font-heading font-bold text-brand-indigo text-lg tracking-tight hidden sm:block">
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
+              <div className="w-8 h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
+                <img src="/logo.png" alt="Campusly Logo" className="w-full h-full object-contain" />
+              </div>
+              <span className="font-heading font-extrabold text-[#2E3192] text-xl tracking-tight hidden sm:block">
                 Campusly
               </span>
             </Link>
           </div>
 
-          {/* Search bar */}
+          {/* Animated Search bar */}
           {!isDashboard ? (
-            <form
-              onSubmit={handleSearch}
-              className="flex-1 max-w-2xl mx-auto"
-            >
-              <div className="relative">
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-auto">
+              <motion.div
+                animate={{ scale: searchFocused ? 1.01 : 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className={cn(
+                  "relative rounded-full transition-all duration-200",
+                  searchFocused
+                    ? "ring-2 ring-[#2E3192]/20 border-[#2E3192] shadow-xs"
+                    : "border-[#E5E5E0] dark:border-[#26282E]"
+                )}
+              >
                 <Search
                   size={16}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                  className={cn(
+                    "absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
+                    searchFocused ? "text-[#2E3192]" : "text-gray-400"
+                  )}
                 />
                 <input
                   type="search"
                   value={searchVal}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                   onChange={(e) => {
                     setSearchVal(e.target.value);
                     if (isSearchPage) onSearch?.(e.target.value);
                   }}
                   placeholder="Search modules, notes, past exams, video lectures…"
-                  className="w-full pl-10 pr-4 py-2 text-sm rounded-pill border border-border-soft dark:border-border-dark bg-canvas dark:bg-canvas-dark text-text-primary dark:text-gray-100 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-indigo focus:border-brand-indigo transition-all"
+                  className="w-full pl-10 pr-4 py-2 text-sm rounded-full border border-gray-200 dark:border-[#26282E] bg-gray-50/70 dark:bg-card-dark text-text-primary dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:bg-white dark:focus:bg-[#16181D] transition-all"
                 />
-              </div>
+              </motion.div>
             </form>
           ) : (
             <div className="flex-1" />
           )}
 
-          {/* Right side */}
+          {/* Right side controls */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {!user ? (
               <>
                 <Link href="/login">
-                  <Button variant="ghost" size="sm">Log in</Button>
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Button variant="ghost" size="sm" className="font-semibold text-gray-700 dark:text-gray-300">Log in</Button>
+                  </motion.div>
                 </Link>
                 <Link href="/register">
-                  <Button size="sm">Sign up</Button>
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Button size="sm" className="bg-[#2E3192] hover:bg-[#2E3192]/90 font-semibold shadow-xs">Sign up</Button>
+                  </motion.div>
                 </Link>
               </>
             ) : (
               <div className="flex items-center gap-2">
                 {/* Plus button for New Listing on dashboard */}
                 {isDashboard && (
-                  <Link
-                    href="/dashboard/listings/new"
-                    className="w-9 h-9 rounded-xl bg-brand-indigo text-white flex items-center justify-center shadow-sm hover:bg-brand-indigo/90 transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-                    title="Create New Listing"
-                    aria-label="New Listing"
-                  >
-                    <Plus size={18} />
-                  </Link>
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Link
+                      href="/dashboard/listings/new"
+                      className="w-9 h-9 rounded-xl bg-[#2E3192] text-white flex items-center justify-center shadow-xs hover:bg-[#2E3192]/90 transition-all flex-shrink-0"
+                      title="Create New Listing"
+                      aria-label="New Listing"
+                    >
+                      <Plus size={18} />
+                    </Link>
+                  </motion.div>
                 )}
 
+                {/* Notifications Bell */}
                 <div className="relative" ref={notifRef}>
-                    <button
-                      onClick={handleOpenNotifs}
-                      className="p-2 rounded-md text-text-muted hover:text-text-body hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
-                      aria-label="Notifications"
-                    >
-                      <Bell size={18} />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-card dark:border-card-dark" />
-                      )}
-                    </button>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    onClick={handleOpenNotifs}
+                    className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+                    aria-label="Notifications"
+                  >
+                    <Bell size={18} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white dark:border-[#16181D]" />
+                    )}
+                  </motion.button>
 
+                  <AnimatePresence>
                     {notifOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-80 bg-card dark:bg-card-dark rounded-xl border border-border-soft dark:border-border-dark shadow-xl py-2 animate-slide-up z-50">
-                        <div className="px-4 py-2 border-b border-border-soft dark:border-border-dark flex justify-between items-center mb-1">
-                          <h3 className="text-sm font-semibold text-text-primary dark:text-gray-100">Messages</h3>
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-card-dark rounded-2xl border border-gray-100 dark:border-[#26282E] shadow-xl py-2 z-50 overflow-hidden"
+                      >
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-[#26282E] flex justify-between items-center mb-1">
+                          <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100">Notifications</h3>
                           {unreadCount > 0 && (
-                            <span className="text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
                               {unreadCount} New
                             </span>
                           )}
@@ -219,9 +271,9 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                         
                         <div className="max-h-80 overflow-y-auto custom-scrollbar">
                           {notifications.length === 0 ? (
-                            <div className="px-4 py-8 text-center text-text-muted">
-                              <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                              <p className="text-sm">No messages</p>
+                            <div className="px-4 py-8 text-center text-gray-400">
+                              <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                              <p className="text-xs">No recent notifications</p>
                             </div>
                           ) : (
                             <div className="flex flex-col">
@@ -230,24 +282,24 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                                   key={n.id}
                                   href="/dashboard/messages"
                                   onClick={() => setNotifOpen(false)}
-                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-border-soft dark:border-border-dark last:border-0 flex gap-3"
+                                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-100 dark:border-[#26282E] last:border-0 flex gap-3"
                                 >
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    n.type === 'rejection' ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' :
-                                    n.type === 'approval' ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400' :
-                                    'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                                    n.type === 'rejection' ? 'bg-red-100 text-red-600' :
+                                    n.type === 'approval' ? 'bg-emerald-100 text-emerald-600' :
+                                    'bg-indigo-100 text-indigo-600'
                                   }`}>
-                                    {n.type === 'rejection' && <AlertCircle size={16} />}
-                                    {n.type === 'approval' && <CheckCircle size={16} />}
-                                    {n.type === 'sale' && <ShoppingBag size={16} />}
+                                    {n.type === 'rejection' && <AlertCircle size={15} />}
+                                    {n.type === 'approval' && <CheckCircle size={15} />}
+                                    {n.type === 'sale' && <ShoppingBag size={15} />}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-sm font-medium text-text-primary dark:text-gray-100 line-clamp-1">
+                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                       {n.type === 'rejection' && 'Listing Rejected'}
                                       {n.type === 'approval' && 'Listing Approved'}
                                       {n.type === 'sale' && 'New Sale!'}
                                     </p>
-                                    <p className="text-xs text-text-muted line-clamp-1 mt-0.5">
+                                    <p className="text-[11px] text-gray-500 truncate mt-0.5">
                                       {n.type === 'rejection' && `"${n.product.title}" needs revision.`}
                                       {n.type === 'approval' && `"${n.product.title}" is now live.`}
                                       {n.type === 'sale' && `@${n.buyer.profile.username} bought "${n.product.title}".`}
@@ -259,68 +311,82 @@ export function Navbar({ onSearch, searchValue = "", darkMode, toggleDark, onMob
                           )}
                         </div>
                         
-                        <div className="px-4 py-2 border-t border-border-soft dark:border-border-dark mt-1">
+                        <div className="px-4 py-2 border-t border-gray-100 dark:border-[#26282E] mt-1">
                           <Link
                             href="/dashboard/messages"
                             onClick={() => setNotifOpen(false)}
-                            className="text-xs font-semibold text-brand-indigo hover:text-brand-indigo-dark block text-center"
+                            className="text-xs font-bold text-[#2E3192] hover:underline block text-center"
                           >
-                            View all messages
+                            View message center
                           </Link>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
+                </div>
 
-                  {!pathname.startsWith("/dashboard") && (
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        id="user-menu-button"
-                        onClick={() => {
+                {/* User Avatar & Dropdown */}
+                {!pathname.startsWith("/dashboard") && (
+                  <div className="relative" ref={dropdownRef}>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      id="user-menu-button"
+                      onClick={() => {
                         setNotifOpen(false);
                         setDropdownOpen((v) => !v);
                       }}
-                      className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-btn hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       aria-haspopup="true"
                       aria-expanded={dropdownOpen}
                     >
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-7 h-7 rounded-full object-cover border border-border-soft"
+                        className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                       />
-                      <span className="text-sm font-medium text-text-primary dark:text-gray-100 hidden md:block max-w-[120px] truncate">
+                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200 hidden md:block max-w-[120px] truncate">
                         {user.name.split(" ")[0]}
                       </span>
                       <ChevronDown
                         size={14}
-                        className={`text-text-muted transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                        className={`text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-[#2E3192]" : ""}`}
                       />
-                    </button>
+                    </motion.button>
 
-                    {dropdownOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-52 bg-card dark:bg-card-dark rounded-xl border border-border-soft dark:border-border-dark shadow-card-hover py-1 animate-slide-up">
-                        <div className="px-3 py-2 border-b border-border-soft dark:border-border-dark mb-1">
-                          <p className="text-sm font-semibold text-text-primary dark:text-gray-100 truncate">{user.name}</p>
-                          <p className="text-xs text-text-muted truncate">{user.email}</p>
-                        </div>
-                        <DropdownItem href="/dashboard/earnings" icon={<LayoutDashboard size={15} />} label="Dashboard" onClick={() => setDropdownOpen(false)} />
-                        {user.role === "admin" && (
-                          <DropdownItem href="/admin" icon={<Shield size={15} />} label="Admin Panel" onClick={() => setDropdownOpen(false)} className="text-brand-indigo" />
-                        )}
-                        <div className="border-t border-border-soft dark:border-border-dark mt-1 pt-1">
-                          <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                          >
-                            <LogOut size={15} />
-                            Sign out
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {dropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{ duration: 0.15, ease: "easeOut" }}
+                          className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-card-dark rounded-2xl border border-gray-100 dark:border-[#26282E] shadow-xl py-1 z-50 overflow-hidden"
+                        >
+                          <div className="px-4 py-3 border-b border-gray-100 dark:border-[#26282E] mb-1">
+                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
+                            <p className="text-[11px] text-gray-400 truncate mt-0.5">@{user.username}</p>
+                          </div>
+                          
+                          {user.role === "admin" ? (
+                            <DropdownItem href="/admin/overview" icon={<Shield size={15} />} label="Admin Dashboard" onClick={() => setDropdownOpen(false)} className="text-[#2E3192] font-semibold" />
+                          ) : (
+                            <DropdownItem href="/dashboard/listings" icon={<LayoutDashboard size={15} />} label="Seller Dashboard" onClick={() => setDropdownOpen(false)} />
+                          )}
+                          
+                          <div className="border-t border-gray-100 dark:border-[#26282E] mt-1 pt-1">
+                            <button
+                              onClick={handleLogout}
+                              className="flex items-center gap-2.5 w-full px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+                            >
+                              <LogOut size={15} />
+                              Sign out
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  )}
+                )}
               </div>
             )}
           </div>
@@ -347,7 +413,7 @@ function DropdownItem({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-2.5 px-3 py-2 text-sm text-text-body dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${className}`}
+      className={`flex items-center gap-2.5 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors ${className}`}
     >
       {icon}
       {label}

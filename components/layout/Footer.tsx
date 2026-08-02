@@ -1,48 +1,54 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { BookOpen, Shield } from "lucide-react";
+import { Shield, Sparkles } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border-soft dark:border-border-dark bg-card dark:bg-card-dark mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <footer className="border-t border-[#E5E5E0] dark:border-[#26282E] bg-[#FAFAF8] dark:bg-[#16181D] mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-3">
-              <img src="/logo.png" alt="Campusly Logo" className="w-7 h-7 rounded-md object-contain" />
-              <span className="font-heading font-bold text-brand-indigo text-base">
+          
+          {/* Brand & Mission */}
+          <div className="md:col-span-2 space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg overflow-hidden group-hover:scale-105 transition-transform">
+                <img src="/logo.png" alt="Campusly Logo" className="w-full h-full object-contain" />
+              </div>
+              <span className="font-heading font-extrabold text-[#2E3192] text-xl tracking-tight">
                 Campusly
               </span>
             </Link>
-            <p className="text-sm text-text-muted leading-relaxed max-w-xs">
-              A peer-to-peer marketplace for university students to share and sell
-              course materials safely and affordably.
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-sm">
+              Empowering university students to exchange lecture notes, modules, exam solutions, and academic resources in a trusted peer-to-peer marketplace.
             </p>
-            {/* Trust signal */}
-            <div className="flex items-center gap-2 mt-4 text-xs text-text-muted">
-              <Shield size={13} className="text-brand-indigo" />
-              <span>All listings are reviewed by our team before going public.</span>
+
+            {/* Trust Signal */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#2E3192]/5 border border-[#2E3192]/15 text-[11px] font-semibold text-[#2E3192] dark:text-indigo-300">
+              <Shield size={13} className="text-[#2E3192] dark:text-indigo-400" />
+              <span>All marketplace listings are reviewed by our team</span>
             </div>
           </div>
 
-          {/* Links */}
+          {/* Quick Navigation Links */}
           <div>
-            <h4 className="text-sm font-semibold text-text-primary dark:text-gray-200 mb-3">
-              Marketplace
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3.5">
+              Explore Categories
             </h4>
-            <ul className="flex flex-col gap-2">
+            <ul className="space-y-2">
               {[
-                { href: "/", label: "Browse All" },
+                { href: "/", label: "All Marketplace Items" },
                 { href: "/?category=Computer+Science", label: "Computer Science" },
                 { href: "/?category=Engineering", label: "Engineering" },
-                { href: "/?category=Law", label: "Law" },
-                { href: "/?category=Business", label: "Business" },
+                { href: "/?category=Medicine", label: "Medicine & Health" },
+                { href: "/?category=Business", label: "Business & Economics" },
               ].map((l) => (
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-sm text-text-muted hover:text-brand-indigo transition-colors"
+                    className="text-xs text-gray-500 hover:text-[#2E3192] dark:hover:text-indigo-400 transition-colors font-medium"
                   >
                     {l.label}
                   </Link>
@@ -51,21 +57,22 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Student Account Links */}
           <div>
-            <h4 className="text-sm font-semibold text-text-primary dark:text-gray-200 mb-3">
-              Account
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3.5">
+              Platform & Legal
             </h4>
-            <ul className="flex flex-col gap-2">
+            <ul className="space-y-2">
               {[
-                { href: "/login", label: "Log In" },
-                { href: "/register", label: "Sign Up" },
-                { href: "/dashboard/listings", label: "My Listings" },
-                { href: "/dashboard/listings/new", label: "Sell Materials" },
-              ].map((l) => (
-                <li key={l.href}>
+                { href: "/login", label: "Student Sign In" },
+                { href: "/register", label: "Create Account" },
+                { href: "/dashboard/listings/new", label: "Sell Study Materials" },
+                { href: "#", label: "Privacy Policy & Terms" },
+              ].map((l, idx) => (
+                <li key={idx}>
                   <Link
                     href={l.href}
-                    className="text-sm text-text-muted hover:text-brand-indigo transition-colors"
+                    className="text-xs text-gray-500 hover:text-[#2E3192] dark:hover:text-indigo-400 transition-colors font-medium"
                   >
                     {l.label}
                   </Link>
@@ -75,13 +82,14 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border-soft dark:border-border-dark mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-text-muted">
-            © {new Date().getFullYear()} Campusly. Students helping students.
-          </p>
-          <p className="text-xs text-text-muted">
-            Built for universities. Moderated for safety.
-          </p>
+        {/* Bottom Copyright Row */}
+        <div className="border-t border-[#E5E5E0] dark:border-[#26282E] mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-gray-400">
+          <p>© {new Date().getFullYear()} Campusly Academic Marketplace. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <span className="hover:text-gray-600 transition-colors">Built for Universities</span>
+            <span>•</span>
+            <span className="hover:text-gray-600 transition-colors">Moderated & Verified</span>
+          </div>
         </div>
       </div>
     </footer>
